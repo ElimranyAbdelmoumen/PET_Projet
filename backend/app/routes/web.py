@@ -1,7 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session
 
 from app.models.user import create_user, get_user_by_username, verify_password
-from app.models.submission import create_submission, list_all_submissions, update_status
+from app.models.submission import (
+    create_submission,
+    get_submission,
+    list_all_submissions,
+    update_status,
+)
 from app.utils.authz import login_required, admin_required
 
 import os
@@ -67,7 +72,14 @@ def register_post():
 @bp.get("/web/submit")
 @login_required
 def submit_page():
-    return render_template("submit.html", username=session.get("username"), result=None, error=None)
+    sid = request.args.get("sid", type=int)
+    result = get_submission(sid) if sid else None
+    return render_template(
+        "submit.html",
+        username=session.get("username"),
+        result=result,
+        error=None,
+    )
 
 @bp.post("/web/submit")
 @login_required
@@ -89,7 +101,7 @@ def submit_post():
         f.write(code)
 
     created = create_submission(user_id, file_path)
-    return render_template("submit.html", username=session.get("username"), result=created, error=None)
+    return redirect(url_for("web.submit_page", sid=created["id"]))
 
 
 @bp.get("/web/admin/submissions")

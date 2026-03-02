@@ -1,5 +1,6 @@
 from app.utils.db import execute, fetchall, fetchone
 
+
 def create_submission(user_id: int, file_path: str):
     row = fetchone(
         """
@@ -11,6 +12,18 @@ def create_submission(user_id: int, file_path: str):
     )
     return row
 
+
+def get_submission(submission_id: int):
+    return fetchone(
+        """
+        SELECT id, status
+        FROM submissions
+        WHERE id = %s
+        """,
+        (submission_id,),
+    )
+
+
 def list_all_submissions():
     return fetchall(
         """
@@ -20,6 +33,7 @@ def list_all_submissions():
         ORDER BY s.id DESC
         """
     )
+
 
 def update_status(submission_id: int, status: str):
     execute(

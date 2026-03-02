@@ -3,56 +3,58 @@
 <head>
   <meta charset="utf-8" />
   <title>Admin - Submissions</title>
-  <style>
-    body{font-family:Arial; margin:40px;}
-    table{border-collapse:collapse; width:100%;}
-    th,td{border:1px solid #ddd; padding:10px; font-size:14px;}
-    th{background:#f5f5f5;}
-    .top{display:flex; justify-content:space-between; align-items:center;}
-    form{display:inline;}
-    button{padding:6px 10px;}
-    .badge{padding:3px 8px; border-radius:12px; background:#eee;}
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
-  <div class="top">
-    <h2>Admin — Soumissions</h2>
-    <form method="post" action="/web/logout">
-      <span>Connecté : <b>{{ username }}</b></span>
-      <button type="submit">Logout</button>
-    </form>
+  <div class="topbar">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="brand">PET Platform — Admin</div>
+      <form method="post" action="/web/logout" class="inline">
+        <span>Connecté : <b>{{ username }}</b></span>
+        <button type="submit">Logout</button>
+      </form>
+    </div>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>User</th>
-        <th>Status</th>
-        <th>File</th>
-        <th>Date</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in submissions %}
-      <tr>
-        <td>{{ s.id }}</td>
-        <td>{{ s.username }}</td>
-        <td><span class="badge">{{ s.status }}</span></td>
-        <td>{{ s.file_path }}</td>
-        <td>{{ s.created_at }}</td>
-        <td>
-          <form method="post" action="/web/admin/submissions/{{ s.id }}/approve">
-            <button type="submit">Approve</button>
-          </form>
-          <form method="post" action="/web/admin/submissions/{{ s.id }}/reject">
-            <button type="submit">Reject</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="container">
+    <div class="card">
+      <h2>Soumissions</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Status</th>
+            <th>File</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in submissions %}
+          <tr>
+            <td>{{ s.id }}</td>
+            <td>{{ s.username }}</td>
+            <td>
+              <span class="badge {{ s.status|lower }}">
+                {{ s.status }}
+              </span>
+            </td>
+            <td>{{ s.file_path }}</td>
+            <td>{{ s.created_at }}</td>
+            <td>
+              <form method="post" action="/web/admin/submissions/{{ s.id }}/approve" class="inline">
+                <button type="submit">Approve</button>
+              </form>
+              <form method="post" action="/web/admin/submissions/{{ s.id }}/reject" class="inline">
+                <button type="submit" class="danger">Reject</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </body>
 </html>
