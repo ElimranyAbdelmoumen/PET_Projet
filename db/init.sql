@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(80) UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role VARCHAR(10) NOT NULL CHECK (role IN ('USER','ADMIN')),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS submissions (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  file_path TEXT NOT NULL,
+  status VARCHAR(10) NOT NULL CHECK (status IN ('PENDING','APPROVED','REJECTED')),
+  stdout TEXT,
+  stderr TEXT,
+  exit_code INT,
+  logs TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

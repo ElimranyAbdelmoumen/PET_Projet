@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin - Submissions</title>
+  <style>
+    body{font-family:Arial; margin:40px;}
+    table{border-collapse:collapse; width:100%;}
+    th,td{border:1px solid #ddd; padding:10px; font-size:14px;}
+    th{background:#f5f5f5;}
+    .top{display:flex; justify-content:space-between; align-items:center;}
+    form{display:inline;}
+    button{padding:6px 10px;}
+    .badge{padding:3px 8px; border-radius:12px; background:#eee;}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h2>Admin — Soumissions</h2>
+    <form method="post" action="/web/logout">
+      <span>Connecté : <b>{{ username }}</b></span>
+      <button type="submit">Logout</button>
+    </form>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>User</th>
+        <th>Status</th>
+        <th>File</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in submissions %}
+      <tr>
+        <td>{{ s.id }}</td>
+        <td>{{ s.username }}</td>
+        <td><span class="badge">{{ s.status }}</span></td>
+        <td>{{ s.file_path }}</td>
+        <td>{{ s.created_at }}</td>
+        <td>
+          <form method="post" action="/web/admin/submissions/{{ s.id }}/approve">
+            <button type="submit">Approve</button>
+          </form>
+          <form method="post" action="/web/admin/submissions/{{ s.id }}/reject">
+            <button type="submit">Reject</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
