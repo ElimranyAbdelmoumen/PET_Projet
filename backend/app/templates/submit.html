@@ -3,35 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <title>Submit - PET</title>
-  <style>
-    body{font-family:Arial; margin:40px;}
-    textarea{width:100%; height:280px; padding:10px;}
-    button{padding:10px 14px; margin-top:10px;}
-    .top{display:flex; justify-content:space-between; align-items:center;}
-    .err{color:#b00020;}
-    .ok{color:#0b6b0b;}
-    .box{max-width:900px;}
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
-  <div class="box">
-    <div class="top">
-      <h2>Soumission de code</h2>
-      <form method="post" action="/web/logout">
+  <div class="topbar">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="brand">PET Platform — Soumission</div>
+      <form method="post" action="/web/logout" class="inline">
         <span>Connecté : <b>{{ username }}</b></span>
         <button type="submit">Logout</button>
       </form>
     </div>
+  </div>
 
-    {% if error %}<p class="err">{{ error }}</p>{% endif %}
-    {% if result %}
-      <p class="ok">Soumission créée : ID {{ result.id }} ({{ result.status }})</p>
-    {% endif %}
+  <div class="container">
+    <div class="card">
+      <h2>Soumission de code</h2>
 
-    <form method="post" action="/web/submit">
-      <textarea name="code" placeholder="Collez votre script Python ici..." required>print("Hello PET Platform")</textarea>
-      <button type="submit">Soumettre (PENDING)</button>
-    </form>
+      <div class="flash-zone">
+        {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+        {% if result %}
+          <p class="flash success">Soumission créée : ID {{ result.id }} ({{ result.status }})</p>
+        {% endif %}
+      </div>
+
+      <form method="post" action="/web/submit">
+        <label for="code">Script Python</label>
+        <textarea id="code" name="code" placeholder="Collez votre script Python ici..." required>print("Hello PET Platform")</textarea>
+        <button type="submit">Soumettre (PENDING)</button>
+      </form>
+    </div>
   </div>
 </body>
 </html>
