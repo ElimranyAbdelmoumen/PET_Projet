@@ -23,3 +23,18 @@ button.danger { background: #dc2626; margin-left: 8px; }
 .flash.success { background: #d1fae5; }
 .flash.error { background: #fee2e2; }
 .flash.info { background: #e0f2fe; }
+
+.code-editor {
+  font-family: "Fira Code", Consolas, "Courier New", monospace;
+  background: #0b1020;
+  color: #e5e7eb;
+  min-height: 340px;
+  height: 340px;
+  resize: vertical;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #111827;
+  line-height: 1.4;
+  font-size: 14px;
+  white-space: pre;
+}

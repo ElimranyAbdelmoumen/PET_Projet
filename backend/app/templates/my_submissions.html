@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Mes soumissions - PET</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  <div class="topbar">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="brand">PET Platform — Mes soumissions</div>
+      <form method="post" action="/web/logout" class="inline">
+        <span>Connecté : <b>{{ username }}</b></span>
+        <button type="submit">Logout</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>Historique de mes soumissions</h2>
+
+      {% if not submissions %}
+        <p class="hint">Aucune soumission pour le moment.</p>
+      {% else %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fichier</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in submissions %}
+            <tr>
+              <td>{{ s.id }}</td>
+              <td>{{ s.file_path }}</td>
+              <td>
+                <span class="badge {{ s.status|lower }}">
+                  {{ s.status }}
+                </span>
+              </td>
+              <td>{{ s.created_at }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
+

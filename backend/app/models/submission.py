@@ -35,6 +35,18 @@ def list_all_submissions():
     )
 
 
+def list_user_submissions(user_id: int):
+    return fetchall(
+        """
+        SELECT id, file_path, status, created_at
+        FROM submissions
+        WHERE user_id = %s
+        ORDER BY id DESC
+        """,
+        (user_id,),
+    )
+
+
 def update_status(submission_id: int, status: str):
     execute(
         "UPDATE submissions SET status=%s, updated_at=NOW() WHERE id=%s",

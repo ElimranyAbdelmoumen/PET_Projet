@@ -5,6 +5,7 @@ from app.models.submission import (
     create_submission,
     get_submission,
     list_all_submissions,
+    list_user_submissions,
     update_status,
 )
 from app.utils.authz import login_required, admin_required
@@ -72,12 +73,15 @@ def register_post():
 @bp.get("/web/submit")
 @login_required
 def submit_page():
+    user_id = session["user_id"]
     sid = request.args.get("sid", type=int)
     result = get_submission(sid) if sid else None
+    submissions = list_user_submissions(user_id)
     return render_template(
         "submit.html",
         username=session.get("username"),
         result=result,
+        submissions=submissions,
         error=None,
     )
 
@@ -86,7 +90,15 @@ def submit_page():
 def submit_post():
     code = request.form.get("code", "")
     if not code.strip():
-        return render_template("submit.html", username=session.get("username"), result=None, error="Code requis.")
+        user_id = session["user_id"]
+        submissions = list_user_submissions(user_id)
+        return render_template(
+            "submit.html",
+            username=session.get("username"),
+            result=None,
+            submissions=submissions,
+            error="Code requis.",
+        )
 
     user_id = session["user_id"]
 
@@ -102,6 +114,18 @@ def submit_post():
 
     created = create_submission(user_id, file_path)
     return redirect(url_for("web.submit_page", sid=created["id"]))
+
+
+@bp.get("/web/my-submissions")
+@login_required
+def my_submissions():
+    user_id = session["user_id"]
+    subs = list_user_submissions(user_id)
+    return render_template(
+        "my_submissions.html",
+        username=session.get("username"),
+        submissions=subs,
+    )
 
 
 @bp.get("/web/admin/submissions")
