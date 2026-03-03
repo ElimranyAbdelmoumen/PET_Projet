@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <title>Submit - PET</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <!-- CodeMirror CSS (éditeur de code) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" integrity="sha512-0k9R+K8Smtmq/Op8Dm3XgtYj/OEr2Zb48j1vYvk4VHKZrnk7MrmhoLQO8MuYpdPnrBxE3KRS6LNlMut5CnvUNA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" integrity="sha512-3TrD4ibh5raBGnlr1JbikKpKt+0Ma5YrnNXTVR2oD4+vC4XzY/aWzB8CKztCOM8rtz6RffgJdnvRBc3pE5cAsw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
   <div class="topbar">
@@ -27,12 +30,79 @@
         {% endif %}
       </div>
 
-      <form method="post" action="/web/submit">
+      <form id="submit-form" method="post" action="/web/submit">
         <label for="code">Script Python</label>
-        <textarea id="code" name="code" placeholder="Collez votre script Python ici..." required>print("Hello PET Platform")</textarea>
+        <textarea
+          id="code"
+          name="code"
+          class="code-editor"
+          placeholder="Écrivez ici votre script Python..."
+          required
+        ></textarea>
         <button type="submit">Soumettre (PENDING)</button>
       </form>
     </div>
+
+    <div class="card">
+      <h3>Mes dernières soumissions</h3>
+      {% if not submissions %}
+        <p class="hint">Aucune soumission pour le moment.</p>
+      {% else %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fichier</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in submissions %}
+            <tr>
+              <td>{{ s.id }}</td>
+              <td>{{ s.file_path }}</td>
+              <td>
+                <span class="badge {{ s.status|lower }}">
+                  {{ s.status }}
+                </span>
+              </td>
+              <td>{{ s.created_at }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
   </div>
+
+  <!-- CodeMirror JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js" integrity="sha512-zgQd1wXBGWYTkU9Xh8HMScVYAVpTuikkK9nw2Z5arZvEHCrx0+5RTbf1nthzkibPA9BREAVUSAX9AFgmpSHaHQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js" integrity="sha512-QtOzMs+9uW9/LPvd2zY+W3YVaVg2LUaI4mQjbEh6z6DdobvOWxmXjke5SMyHnkNldYzALuP0tqgcDRdrUsTolw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <script>
+    (function() {
+      var textarea = document.getElementById("code");
+      if (!textarea) return;
+
+      var editor = CodeMirror.fromTextArea(textarea, {
+        lineNumbers: true,
+        mode: "python",
+        theme: "material-darker",
+        indentUnit: 4,
+        tabSize: 4,
+        lineWrapping: true,
+      });
+
+      editor.setSize("100%", 360);
+
+      var form = document.getElementById("submit-form");
+      if (form) {
+        form.addEventListener("submit", function() {
+          textarea.value = editor.getValue();
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
