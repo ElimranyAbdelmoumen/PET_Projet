@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin - Soumission #{{ submission.id }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" crossorigin="anonymous" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="brand">PET Platform — Admin</div>
+      <div>
+        <a href="{{ url_for('web.admin_submissions') }}" style="color:#e5e7eb; margin-right:16px;">← Retour</a>
+        <form method="post" action="/web/logout" class="inline">
+          <span>Connecté : <b>{{ username }}</b></span>
+          <button type="submit">Logout</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>
+        {% if submission.name %}
+          {{ submission.name }}
+        {% else %}
+          Soumission #{{ submission.id }}
+        {% endif %}
+      </h2>
+
+      <table class="table" style="max-width:500px;">
+        <tr><th style="width:120px;">ID</th><td>{{ submission.id }}</td></tr>
+        {% if submission.name %}
+        <tr><th>Nom</th><td>{{ submission.name }}</td></tr>
+        {% endif %}
+        <tr><th>User</th><td>{{ submission.username }}</td></tr>
+        <tr><th>Status</th><td><span class="badge {{ submission.status|lower }}">{{ submission.status }}</span></td></tr>
+        <tr><th>Date</th><td>{{ submission.created_at }}</td></tr>
+        {% if submission.exit_code is not none %}
+        <tr><th>Exit code</th><td>{{ submission.exit_code }}</td></tr>
+        {% endif %}
+      </table>
+
+      {% if submission.status == 'PENDING' %}
+      <div style="margin-top:16px;">
+        <form method="post" action="/web/admin/submissions/{{ submission.id }}/approve" class="inline">
+          <button type="submit">Approve</button>
+        </form>
+        <form method="post" action="/web/admin/submissions/{{ submission.id }}/reject" class="inline">
+          <button type="submit" class="danger">Reject</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h3>Code source</h3>
+      <textarea id="code-view" style="display:none;">{{ code_content }}</textarea>
+      <div id="code-editor"></div>
+    </div>
+
+    {% if submission.stdout or submission.stderr %}
+    <div class="card">
+      <h3>Résultat d'exécution</h3>
+      {% if submission.stdout %}
+      <div><strong>stdout:</strong></div>
+      <pre class="codecell-pre">{{ submission.stdout }}</pre>
+      {% endif %}
+      {% if submission.stderr %}
+      <div style="margin-top:12px;"><strong>stderr:</strong></div>
+      <pre class="codecell-pre" style="color:#dc2626;">{{ submission.stderr }}</pre>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js" crossorigin="anonymous"></script>
+  <script>
+    (function() {
+      var textarea = document.getElementById("code-view");
+      var container = document.getElementById("code-editor");
+      if (!textarea || !container) return;
+
+      var editor = CodeMirror(container, {
+        value: textarea.value,
+        mode: "python",
+        theme: "material-darker",
+        lineNumbers: true,
+        readOnly: true,
+      });
+      editor.setSize("100%", 400);
+    })();
+  </script>
+</body>
+</html>
