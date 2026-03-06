@@ -23,9 +23,10 @@
         <thead>
           <tr>
             <th>ID</th>
+            <th>Nom</th>
             <th>User</th>
             <th>Status</th>
-            <th>File</th>
+            <th>Exit</th>
             <th>Date</th>
             <th>Actions</th>
           </tr>
@@ -34,23 +35,41 @@
           {% for s in submissions %}
           <tr>
             <td>{{ s.id }}</td>
+            <td>{{ s.name or '—' }}</td>
             <td>{{ s.username }}</td>
             <td>
               <span class="badge {{ s.status|lower }}">
                 {{ s.status }}
               </span>
             </td>
-            <td>{{ s.file_path }}</td>
+            <td>{{ s.exit_code if s.exit_code is not none else '-' }}</td>
             <td>{{ s.created_at }}</td>
             <td>
+              <a href="{{ url_for('web.admin_view_submission', sid=s.id) }}" class="btn-link">Voir</a>
+              {% if s.status == 'PENDING' %}
               <form method="post" action="/web/admin/submissions/{{ s.id }}/approve" class="inline">
                 <button type="submit">Approve</button>
               </form>
               <form method="post" action="/web/admin/submissions/{{ s.id }}/reject" class="inline">
                 <button type="submit" class="danger">Reject</button>
               </form>
+              {% endif %}
             </td>
           </tr>
+          {% if s.stdout or s.stderr %}
+          <tr>
+            <td colspan="7" class="codecell">
+              {% if s.stdout %}
+              <div><strong>stdout:</strong></div>
+              <pre>{{ s.stdout }}</pre>
+              {% endif %}
+              {% if s.stderr %}
+              <div><strong>stderr:</strong></div>
+              <pre style="color:#dc2626;">{{ s.stderr }}</pre>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
           {% endfor %}
         </tbody>
       </table>

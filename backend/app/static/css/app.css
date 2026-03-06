@@ -16,8 +16,11 @@ button.danger { background: #dc2626; margin-left: 8px; }
 .codecell pre { background: #0b1020; color: #e5e7eb; padding: 12px; border-radius: 8px; overflow: auto; }
 .badge { padding: 3px 8px; border-radius: 999px; font-size: 12px; }
 .badge.pending { background: #fef3c7; }
-.badge.approved { background: #d1fae5; }
+.badge.approved { background: #dbeafe; }
 .badge.rejected { background: #fee2e2; }
+.badge.running { background: #fef3c7; color: #92400e; }
+.badge.finished { background: #d1fae5; color: #065f46; }
+.badge.failed { background: #fee2e2; color: #991b1b; }
 .flash-zone { margin-top: 12px; }
 .flash { padding: 10px; border-radius: 8px; margin-bottom: 8px; }
 .flash.success { background: #d1fae5; }
@@ -37,4 +40,25 @@ button.danger { background: #dc2626; margin-left: 8px; }
   line-height: 1.4;
   font-size: 14px;
   white-space: pre;
+}
+
+.btn-link {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #374151;
+  color: #e5e7eb;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 13px;
+  margin-right: 8px;
+}
+.btn-link:hover { background: #4b5563; }
+
+.codecell-pre {
+  background: #0b1020;
+  color: #e5e7eb;
+  padding: 12px;
+  border-radius: 8px;
+  overflow: auto;
+  margin: 8px 0;
 }

@@ -4,6 +4,8 @@ from app.models.user import create_user, get_user_by_username, verify_password
 from app.models.submission import (
     create_submission,
     get_submission,
+    get_submission_by_id,
+    get_user_submission,
     list_all_submissions,
     list_user_submissions,
     update_status,
@@ -75,13 +77,15 @@ def register_post():
 def submit_page():
     user_id = session["user_id"]
     sid = request.args.get("sid", type=int)
+    search = request.args.get("q", "").strip() or None
     result = get_submission(sid) if sid else None
-    submissions = list_user_submissions(user_id)
+    submissions = list_user_submissions(user_id, search=search)
     return render_template(
         "submit.html",
         username=session.get("username"),
         result=result,
         submissions=submissions,
+        search=search,
         error=None,
     )
 
@@ -89,6 +93,8 @@ def submit_page():
 @login_required
 def submit_post():
     code = request.form.get("code", "")
+    name = request.form.get("name", "").strip() or None
+
     if not code.strip():
         user_id = session["user_id"]
         submissions = list_user_submissions(user_id)
@@ -97,6 +103,7 @@ def submit_post():
             username=session.get("username"),
             result=None,
             submissions=submissions,
+            search=None,
             error="Code requis.",
         )
 
@@ -106,13 +113,14 @@ def submit_post():
     os.makedirs(base_dir, exist_ok=True)
 
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    filename = f"user{user_id}_{ts}.py"
+    safe_name = "".join(c if c.isalnum() or c in "_-" else "_" for c in (name or "script"))
+    filename = f"user{user_id}_{ts}_{safe_name}.py"
     file_path = os.path.join(base_dir, filename)
 
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(code)
 
-    created = create_submission(user_id, file_path)
+    created = create_submission(user_id, file_path, name=name)
     return redirect(url_for("web.submit_page", sid=created["id"]))
 
 
@@ -120,11 +128,37 @@ def submit_post():
 @login_required
 def my_submissions():
     user_id = session["user_id"]
-    subs = list_user_submissions(user_id)
+    search = request.args.get("q", "").strip() or None
+    subs = list_user_submissions(user_id, search=search)
     return render_template(
         "my_submissions.html",
         username=session.get("username"),
         submissions=subs,
+        search=search,
+    )
+
+
+@bp.get("/web/my-submissions/<int:sid>")
+@login_required
+def user_view_submission(sid: int):
+    user_id = session["user_id"]
+    sub = get_user_submission(user_id, sid)
+    if not sub:
+        return redirect(url_for("web.submit_page"))
+
+    code_content = ""
+    file_path = sub["file_path"]
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            code_content = f.read()
+    except FileNotFoundError:
+        code_content = "# Fichier introuvable"
+
+    return render_template(
+        "user_view_submission.html",
+        username=session.get("username"),
+        submission=sub,
+        code_content=code_content,
     )
 
 
@@ -133,6 +167,31 @@ def my_submissions():
 def admin_submissions():
     subs = list_all_submissions()
     return render_template("admin_submissions.html", username=session.get("username"), submissions=subs)
+
+
+@bp.get("/web/admin/submissions/<int:sid>")
+@admin_required
+def admin_view_submission(sid: int):
+    sub = get_submission_by_id(sid)
+    if not sub:
+        return redirect(url_for("web.admin_submissions"))
+
+    code_content = ""
+    file_path = sub["file_path"]
+    local_path = file_path.replace("/app/storage", "/app/storage")
+    try:
+        with open(local_path, "r", encoding="utf-8") as f:
+            code_content = f.read()
+    except FileNotFoundError:
+        code_content = "# Fichier introuvable"
+
+    return render_template(
+        "admin_view_submission.html",
+        username=session.get("username"),
+        submission=sub,
+        code_content=code_content,
+    )
+
 
 @bp.post("/web/admin/submissions/<int:sid>/approve")
 @admin_required

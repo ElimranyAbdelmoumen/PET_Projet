@@ -1,4 +1,5 @@
 services:
+
   db:
     image: postgres:16
     container_name: pet_postgres
@@ -13,7 +14,6 @@ services:
     volumes:
       - pet_pgdata:/var/lib/postgresql/data
       - ../db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      
 
   backend:
     build:
@@ -29,6 +29,28 @@ services:
     volumes:
       - ../backend:/app
       - ../storage:/app/storage
+
+  runner:
+    build:
+      context: ../runner
+      dockerfile: Dockerfile
+    image: portwatch-python-runner:1.0
+    entrypoint: ["echo", "Runner image ready"]
+
+  worker:
+    build:
+      context: ../runner_worker
+    container_name: pet_worker
+    env_file:
+      - ../.env
+    environment:
+      HOST_STORAGE_PATH: ${HOST_STORAGE_PATH:-/host_mnt/c/Users/User/Desktop/PET_Projet/storage}
+    depends_on:
+      - db
+      - runner
+    volumes:
+      - ../storage:/storage
+      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   pet_pgdata:
