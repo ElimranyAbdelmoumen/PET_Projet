@@ -175,11 +175,11 @@ Contenu `.env` :
 ```env
 POSTGRES_DB=petdb
 POSTGRES_USER=petuser
-POSTGRES_PASSWORD=petpassword
+POSTGRES_PASSWORD=petpass
 
-DATABASE_URL=postgresql://petuser:petpassword@db:5432/petdb
+DATABASE_URL=postgresql://petuser:petpass@db:5432/petdb
 
-SECRET_KEY=changeme-dev-secret
+SECRET_KEY=change-this-in-production
 FLASK_ENV=development
 
 HOST_STORAGE_PATH=C:/Users/User/Desktop/PET_Projet/storage
