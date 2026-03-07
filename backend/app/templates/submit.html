@@ -42,6 +42,33 @@
           placeholder="Écrivez ici votre script Python..."
           required
         ></textarea>
+
+        <details style="margin-top:12px;">
+          <summary style="cursor:pointer; color:#2563eb;">Bibliothèques disponibles & options avancées</summary>
+          <div style="margin-top:10px; padding:12px; background:#f3f4f6; border-radius:8px; font-size:14px;">
+            <p><strong>Bibliothèques pré-installées :</strong></p>
+            <code style="display:block; background:#1f2937; color:#e5e7eb; padding:8px; border-radius:4px; margin:8px 0;">
+              pandas, numpy, matplotlib, scikit-learn, scipy, seaborn, requests, openpyxl
+            </code>
+            <p style="margin-top:12px;"><strong>Capture automatique des résultats :</strong></p>
+            <ul style="margin:8px 0; padding-left:20px;">
+              <li>Les variables <code>result</code>, <code>output</code>, <code>df</code>, <code>data</code> sont automatiquement affichées</li>
+              <li>Utilisez <code># @output</code> pour marquer une variable à afficher</li>
+            </ul>
+            <p style="margin-top:12px;"><strong>Exemple :</strong></p>
+            <pre style="background:#1f2937; color:#e5e7eb; padding:8px; border-radius:4px; font-size:12px; overflow-x:auto;">import pandas as pd
+import numpy as np
+
+data = pd.DataFrame({
+    'nom': ['Alice', 'Bob', 'Charlie'],
+    'age': [25, 30, 35],
+    'score': np.random.rand(3)
+})
+
+result = data.describe()  # Sera affiché automatiquement</pre>
+          </div>
+        </details>
+
         <button type="submit">Soumettre (PENDING)</button>
       </form>
     </div>

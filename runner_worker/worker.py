@@ -31,8 +31,8 @@ def execute_script(file_path):
     cmd = [
         "docker", "run", "--rm",
         "--network", "none",
-        "--memory", "256m",
-        "--cpus", "0.5",
+        "--memory", "512m",
+        "--cpus", "1.0",
         "-v", f"{host_path}:/work/script.py:ro",
         "portwatch-python-runner:1.0",
         "/work/script.py"
@@ -43,13 +43,29 @@ def execute_script(file_path):
             cmd,
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=60
         )
 
-        return result.stdout, result.stderr, result.returncode
+        # Parser la sortie pour séparer stdout et outputs
+        stdout = result.stdout
+        output_section = ""
+        
+        if "===OUTPUTS===" in stdout:
+            parts = stdout.split("===OUTPUTS===")
+            stdout = parts[0].replace("===STDOUT===", "").strip()
+            output_section = parts[1].strip() if len(parts) > 1 else ""
+        else:
+            stdout = stdout.replace("===STDOUT===", "").strip()
+
+        # Combiner stdout et outputs pour l'affichage
+        full_output = stdout
+        if output_section:
+            full_output += "\n\n=== Résultats Python ===\n" + output_section
+
+        return full_output, result.stderr, result.returncode
 
     except subprocess.TimeoutExpired:
-        return "", "Execution timeout", -1
+        return "", "Execution timeout (60s max)", -1
 
 
 def worker_loop():
