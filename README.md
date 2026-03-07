@@ -120,13 +120,24 @@ storage/submissions/     # Fichiers Python soumis
 Le worker traite les soumissions `APPROVED` :
 
 - **Conteneur Docker isolé** (`portwatch-python-runner:1.0`)
+- **Bibliothèques Python pré-installées** :
+  - `pandas`, `numpy` - manipulation de données
+  - `matplotlib`, `seaborn` - visualisation
+  - `scikit-learn` - machine learning
+  - `scipy` - calculs scientifiques
+  - `requests` - requêtes HTTP
+  - `openpyxl`, `xlrd` - lecture/écriture Excel
 - **Limites de ressources** :
-  - Mémoire : 128 Mo max
-  - CPU : 0.5 core
-  - Temps : 30 secondes max
+  - Mémoire : 512 Mo max
+  - CPU : 1 core
+  - Temps : 60 secondes max
   - Réseau : désactivé (`--network none`)
 - **Utilisateur non-root** dans le conteneur
-- **Capture des résultats** : `stdout`, `stderr`, `exit_code`
+- **Capture des résultats** :
+  - `stdout`, `stderr`, `exit_code`
+  - Variables Python automatiques : `result`, `output`, `df`, `data`
+  - Annotation `# @output` pour marquer des variables personnalisées
+  - Support DataFrames, arrays NumPy, listes, dicts
 - **Status final** : `FINISHED` (succès) ou `FAILED` (erreur)
 
 ### 4.5 Consultation des résultats
