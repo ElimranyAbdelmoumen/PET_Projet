@@ -6,14 +6,19 @@ services:
     env_file:
       - ../.env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-petdb}
+      POSTGRES_USER: ${POSTGRES_USER:-petuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-petpass}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pet_pgdata:/var/lib/postgresql/data
       - ../db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-petuser} -d ${POSTGRES_DB:-petdb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   backend:
     build:
@@ -46,8 +51,11 @@ services:
     environment:
       HOST_STORAGE_PATH: ${HOST_STORAGE_PATH:-/host_mnt/c/Users/User/Desktop/PET_Projet/storage}
     depends_on:
-      - db
-      - runner
+      db:
+        condition: service_healthy
+      runner:
+        condition: service_started
+    restart: on-failure
     volumes:
       - ../storage:/storage
       - /var/run/docker.sock:/var/run/docker.sock

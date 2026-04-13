@@ -32,3 +32,9 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code
+.claude/
+
+# User submissions (runtime data)
+storage/submissions/
