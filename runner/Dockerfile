@@ -4,7 +4,13 @@ RUN useradd -m -u 10001 runner
 
 WORKDIR /work
 
-# Bibliothèques Python courantes pour data science
+# Installer R + headers pour compiler rpy2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    r-base \
+    r-base-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Bibliothèques Python courantes pour data science + rpy2
 RUN pip install --no-cache-dir \
     pandas \
     numpy \
@@ -14,7 +20,8 @@ RUN pip install --no-cache-dir \
     seaborn \
     requests \
     openpyxl \
-    xlrd
+    xlrd \
+    rpy2
 
 # Copier le wrapper d'exécution
 COPY run_script.py /usr/local/bin/run_script.py

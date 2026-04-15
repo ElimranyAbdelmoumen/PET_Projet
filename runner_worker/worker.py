@@ -28,14 +28,17 @@ def execute_script(file_path):
     if not os.path.exists(local_path):
         return "", f"File not found: {local_path}", -1
 
+    ext = os.path.splitext(file_path)[1].lower() or ".py"
+    container_script = f"/work/script{ext}"
+
     cmd = [
         "docker", "run", "--rm",
         "--network", "none",
         "--memory", "512m",
         "--cpus", "1.0",
-        "-v", f"{host_path}:/work/script.py:ro",
+        "-v", f"{host_path}:{container_script}:ro",
         "portwatch-python-runner:1.0",
-        "/work/script.py"
+        container_script,
     ]
 
     try:

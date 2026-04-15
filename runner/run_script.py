@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Wrapper d'exécution qui capture les résultats Python.
-Exécute le script utilisateur et capture:
-- stdout/stderr
-- La dernière expression évaluée
-- Les variables marquées avec # @output
-- Les DataFrames et autres objets Python
+Wrapper d'execution qui capture les resultats Python et R.
+Supporte :
+  - .py  : execution via exec() avec capture des variables @output
+  - .R   : execution via Rscript avec capture stdout/stderr
 """
 import sys
 import io
 import json
 import traceback
+import os
+import subprocess
 
 def serialize_result(obj):
     """Convertit un objet Python en représentation affichable."""
@@ -57,12 +57,40 @@ def serialize_result(obj):
         return {'type': 'error', 'value': f"Cannot serialize: {e}"}
 
 
+def run_r_script(script_path):
+    """Execute un script R via Rscript et retourne (stdout, stderr, exit_code)."""
+    try:
+        result = subprocess.run(
+            ["Rscript", "--vanilla", script_path],
+            capture_output=True,
+            text=True,
+            timeout=55,
+        )
+        return result.stdout, result.stderr, result.returncode
+    except FileNotFoundError:
+        return "", "Rscript not found. R is not installed.", 1
+    except subprocess.TimeoutExpired:
+        return "", "Execution timeout (55s max)", 1
+
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python run_script.py <script.py>", file=sys.stderr)
+        print("Usage: python run_script.py <script.py|script.R>", file=sys.stderr)
         sys.exit(1)
 
     script_path = sys.argv[1]
+    ext = os.path.splitext(script_path)[1].lower()
+
+    # ── Branche R ────────────────────────────────────────────────────────────
+    if ext == ".r":
+        stdout, stderr, code = run_r_script(script_path)
+        print("===STDOUT===")
+        print(stdout)
+        if stderr:
+            print(stderr, file=sys.stderr)
+        sys.exit(code)
+
+    # ── Branche Python (comportement existant) ───────────────────────────────
 
     # Lire le script
     try:
