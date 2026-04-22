@@ -1,0 +1,49 @@
+================================================
+ BENCHMARK PET SANDBOX — 2026-04-22 16:11:59
+================================================
+Image : portwatch-python-runner:1.0
+Limites : 512m RAM / 1 CPU / réseau désactivé
+
+──────────────────────────────────────────────
+ PYTHON
+──────────────────────────────────────────────
+
+=== Python hello (N=5) ===
+  runs: 1611 2070 1417 1689 1379 ms
+  moyenne: 1633 ms
+
+=== Python pandas describe (N=5) ===
+  runs: 1347 1502 1351 1271 1361 ms
+  moyenne: 1366 ms
+
+=== Python sklearn (N=5) ===
+  runs: 1395 1514 1253 1484 1427 ms
+  moyenne: 1414 ms
+
+=== Python + microdata CSV (N=5) ===
+  runs: 1293 1593 1395 1545 1737 ms
+  moyenne: 1512 ms
+
+=== Python + écriture output CSV (N=5) ===
+  runs: 1570 1601 1501 1344 1398 ms
+  moyenne: 1482 ms
+
+──────────────────────────────────────────────
+ R
+──────────────────────────────────────────────
+
+=== R hello (N=5) ===
+  runs: 1613 1613 1375 1423 1344 ms
+  moyenne: 1473 ms
+
+=== R stats rnorm(1000) (N=5) ===
+  runs: 1743 1483 1339 1600 1484 ms
+  moyenne: 1529 ms
+
+=== R + microdata CSV (N=5) ===
+  runs: 1424 1759 1631 1464 1332 ms
+  moyenne: 1522 ms
+
+================================================
+ FIN DU BENCHMARK
+================================================
