@@ -62,3 +62,16 @@ button.danger { background: #dc2626; margin-left: 8px; }
   overflow: auto;
   margin: 8px 0;
 }
+
+.badge-inline {
+  font-size: 13px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.outputs-table {
+  margin-bottom: 16px;
+}
+
+.stderr { color: #dc2626; }
+.error-text { color: #dc2626; }

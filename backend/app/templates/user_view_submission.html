@@ -58,8 +58,47 @@
       <pre class="codecell-pre">{{ submission.stdout }}</pre>
       {% endif %}
       {% if submission.stderr %}
-      <div style="margin-top:12px;"><strong>stderr:</strong></div>
-      <pre class="codecell-pre" style="color:#dc2626;">{{ submission.stderr }}</pre>
+      <div><strong>stderr:</strong></div>
+      <pre class="codecell-pre stderr">{{ submission.stderr }}</pre>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if outputs %}
+    <div class="card">
+      <h3>Fichiers de sortie
+        <span class="badge {{ submission.outputs_status|lower }} badge-inline">{{ submission.outputs_status }}</span>
+      </h3>
+
+      {% if submission.outputs_status == 'APPROVED' %}
+      <p class="hint">Vos fichiers ont été approuvés par l'administrateur. Vous pouvez les télécharger.</p>
+      <table class="table outputs-table">
+        <thead>
+          <tr><th>Fichier</th><th>Date</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for o in outputs %}
+          <tr>
+            <td>{{ o.filename }}</td>
+            <td>{{ o.created_at }}</td>
+            <td>
+              <a href="{{ url_for('web.download_output', sid=submission.id, filename=o.filename) }}" class="btn-link">
+                Télécharger
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% elif submission.outputs_status == 'PENDING_VALIDATION' %}
+      <p class="hint">Vos fichiers sont en attente de validation par l'administrateur.</p>
+      <ul>
+        {% for o in outputs %}
+        <li>{{ o.filename }}</li>
+        {% endfor %}
+      </ul>
+      {% elif submission.outputs_status == 'REJECTED' %}
+      <p class="hint error-text">Vos fichiers de sortie ont été rejetés par l'administrateur.</p>
       {% endif %}
     </div>
     {% endif %}
