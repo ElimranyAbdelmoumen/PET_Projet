@@ -36,5 +36,9 @@ Thumbs.db
 # Claude Code
 .claude/
 
-# User submissions (runtime data)
+# User submissions and outputs (runtime data)
 storage/submissions/
+storage/outputs/
+
+# Benchmark outputs
+benchmark/outputs/
