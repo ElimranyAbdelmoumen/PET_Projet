@@ -1,0 +1,16 @@
+id,secteur,taille_entreprise,type_contrat,salaire_brut,anciennete,teletravail
+1,Industrie,Grande,CDI,42000,8,Non
+2,Services,PME,CDI,35000,3,Oui
+3,Commerce,TPE,CDD,22000,1,Non
+4,Sante,Grande,CDI,48000,12,Non
+5,IT,PME,CDI,55000,5,Oui
+6,Education,Grande,Fonctionnaire,38000,15,Non
+7,BTP,PME,CDI,36000,4,Non
+8,Finance,Grande,CDI,62000,9,Oui
+9,Agriculture,TPE,Saisonnier,18000,2,Non
+10,Transport,Grande,CDI,33000,7,Non
+11,IT,Grande,CDI,70000,6,Oui
+12,Sante,PME,CDI,44000,10,Non
+13,Commerce,Grande,CDI,28000,2,Non
+14,Finance,Grande,CDI,75000,11,Oui
+15,Services,PME,CDD,26000,1,Oui

@@ -10,6 +10,7 @@ from app.models.submission import (
     list_user_submissions,
     update_status,
 )
+from app.models.microdata import list_microdata_files
 from app.utils.authz import login_required, admin_required
 
 import os
@@ -80,12 +81,14 @@ def submit_page():
     search = request.args.get("q", "").strip() or None
     result = get_submission(sid) if sid else None
     submissions = list_user_submissions(user_id, search=search)
+    microdata_files = list_microdata_files()
     return render_template(
         "submit.html",
         username=session.get("username"),
         result=result,
         submissions=submissions,
         search=search,
+        microdata_files=microdata_files,
         error=None,
     )
 
@@ -94,33 +97,37 @@ def submit_page():
 def submit_post():
     code = request.form.get("code", "")
     name = request.form.get("name", "").strip() or None
+    microdata_guid = request.form.get("microdata_guid", "").strip() or None
+    language = request.form.get("language", "python").strip()
+
+    user_id = session["user_id"]
 
     if not code.strip():
-        user_id = session["user_id"]
         submissions = list_user_submissions(user_id)
+        microdata_files = list_microdata_files()
         return render_template(
             "submit.html",
             username=session.get("username"),
             result=None,
             submissions=submissions,
+            microdata_files=microdata_files,
             search=None,
             error="Code requis.",
         )
-
-    user_id = session["user_id"]
 
     base_dir = "/app/storage/submissions"
     os.makedirs(base_dir, exist_ok=True)
 
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     safe_name = "".join(c if c.isalnum() or c in "_-" else "_" for c in (name or "script"))
-    filename = f"user{user_id}_{ts}_{safe_name}.py"
+    ext = ".R" if language == "r" else ".py"
+    filename = f"user{user_id}_{ts}_{safe_name}{ext}"
     file_path = os.path.join(base_dir, filename)
 
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(code)
 
-    created = create_submission(user_id, file_path, name=name)
+    created = create_submission(user_id, file_path, name=name, microdata_guid=microdata_guid)
     return redirect(url_for("web.submit_page", sid=created["id"]))
 
 

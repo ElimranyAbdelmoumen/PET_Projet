@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <title>Submit - PET</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-  <!-- CodeMirror CSS (éditeur de code) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" integrity="sha512-0k9R+K8Smtmq/Op8Dm3XgtYj/OEr2Zb48j1vYvk4VHKZrnk7MrmhoLQO8MuYpdPnrBxE3KRS6LNlMut5CnvUNA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" integrity="sha512-3TrD4ibh5raBGnlr1JbikKpKt+0Ma5YrnNXTVR2oD4+vC4XzY/aWzB8CKztCOM8rtz6RffgJdnvRBc3pE5cAsw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
@@ -34,15 +33,71 @@
         <label for="name">Nom du script (optionnel)</label>
         <input type="text" id="name" name="name" placeholder="Ex: test_division, mon_algo_v2..." maxlength="100" style="margin-bottom:12px;">
 
-        <label for="code">Script Python</label>
+        <!-- Langage -->
+        <label for="language">Langage</label>
+        <div style="display:flex; gap:16px; margin-bottom:12px;">
+          <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;">
+            <input type="radio" name="language" value="python" id="lang-python" checked> Python
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; font-weight:normal; cursor:pointer;">
+            <input type="radio" name="language" value="r" id="lang-r"> R
+          </label>
+        </div>
+
+        <!-- File Chooser -->
+        {% if microdata_files %}
+        <label for="microdata_guid">Fichier de données (optionnel)</label>
+        <select id="microdata_guid" name="microdata_guid" style="margin-bottom:12px;">
+          <option value="">— Aucun fichier sélectionné —</option>
+          {% for f in microdata_files %}
+          <option value="{{ f.guid }}">{{ f.name }}{% if f.description %} — {{ f.description }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <p class="hint" style="margin-top:-8px; margin-bottom:12px;">
+          Le fichier sélectionné sera disponible dans le sandbox à : <code>/work/data/&lt;nom_fichier&gt;.csv</code>
+        </p>
+        {% endif %}
+
+        <label for="code">Code</label>
         <textarea
           id="code"
           name="code"
           class="code-editor"
-          placeholder="Écrivez ici votre script Python..."
+          placeholder="Écrivez ici votre code..."
           required
         ></textarea>
-        <button type="submit">Soumettre (PENDING)</button>
+
+        <details style="margin-top:12px;">
+          <summary style="cursor:pointer; color:#2563eb;">Bibliothèques disponibles & exemples</summary>
+          <div style="margin-top:10px; padding:12px; background:#f3f4f6; border-radius:8px; font-size:14px;">
+            <p><strong>Python — bibliothèques pré-installées :</strong></p>
+            <code style="display:block; background:#1f2937; color:#e5e7eb; padding:8px; border-radius:4px; margin:8px 0;">
+              pandas, numpy, matplotlib, scikit-learn, scipy, seaborn, requests, openpyxl, rpy2
+            </code>
+            <p style="margin-top:12px;"><strong>R — packages disponibles :</strong></p>
+            <code style="display:block; background:#1f2937; color:#e5e7eb; padding:8px; border-radius:4px; margin:8px 0;">
+              stats, utils, base (packages R standards)
+            </code>
+            <p style="margin-top:12px;"><strong>Exemple Python avec fichier de données :</strong></p>
+            <pre style="background:#1f2937; color:#e5e7eb; padding:8px; border-radius:4px; font-size:12px; overflow-x:auto;">import pandas as pd
+
+df = pd.read_csv("/work/data/population_sample.csv")
+result = df.describe()
+print(result)</pre>
+            <p style="margin-top:12px;"><strong>Exemple R avec fichier de données :</strong></p>
+            <pre style="background:#1f2937; color:#e5e7eb; padding:8px; border-radius:4px; font-size:12px; overflow-x:auto;">df <- read.csv("/work/data/population_sample.csv")
+summary(df)
+cat("Moyenne age:", mean(df$age), "\n")</pre>
+            <p style="margin-top:12px;"><strong>Capture automatique des résultats Python :</strong></p>
+            <ul style="margin:8px 0; padding-left:20px;">
+              <li>Les variables <code>result</code>, <code>output</code>, <code>df</code>, <code>data</code> sont automatiquement affichées</li>
+              <li>Utilisez <code># @output</code> pour marquer une variable à afficher</li>
+            </ul>
+          </div>
+        </details>
+
+        <button type="submit" style="margin-top:16px;">Soumettre (PENDING)</button>
+>>>>>>> Stashed changes
       </form>
     </div>
 
@@ -109,6 +164,7 @@
   <!-- CodeMirror JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js" integrity="sha512-zgQd1wXBGWYTkU9Xh8HMScVYAVpTuikkK9nw2Z5arZvEHCrx0+5RTbf1nthzkibPA9BREAVUSAX9AFgmpSHaHQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js" integrity="sha512-QtOzMs+9uW9/LPvd2zY+W3YVaVg2LUaI4mQjbEh6z6DdobvOWxmXjke5SMyHnkNldYzALuP0tqgcDRdrUsTolw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/r/r.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <script>
     (function() {
@@ -125,6 +181,13 @@
       });
 
       editor.setSize("100%", 360);
+
+      // Changer le mode syntaxique selon le langage sélectionné
+      document.querySelectorAll('input[name="language"]').forEach(function(radio) {
+        radio.addEventListener("change", function() {
+          editor.setOption("mode", this.value === "r" ? "r" : "python");
+        });
+      });
 
       var form = document.getElementById("submit-form");
       if (form) {
