@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Navigateur sécurisé requis - PET</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <style>
+    .bsr-card { max-width: 560px; margin: 60px auto; text-align: center; }
+    .bsr-icon { font-size: 56px; margin-bottom: 16px; }
+    .bsr-steps { text-align: left; margin: 24px 0; }
+    .bsr-steps li { margin: 10px 0; color: #374151; }
+    .bsr-steps code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+    .bsr-retry { margin-top: 24px; }
+    .bsr-warning { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin: 16px 0; font-size: 14px; color: #92400e; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card bsr-card">
+      <div class="bsr-icon">🔒</div>
+      <h2>Navigateur sécurisé requis</h2>
+      <p style="color:#6b7280;">
+        Cette plateforme est accessible <strong>uniquement via Brave Browser</strong>
+        avec l'extension <strong>Brave Security Shield</strong> installée.
+      </p>
+
+      <div class="bsr-warning">
+        L'extension de sécurité n'a pas été détectée dans votre navigateur.
+      </div>
+
+      <div class="bsr-steps">
+        <p><strong>Pour accéder à la plateforme :</strong></p>
+        <ol>
+          <li>Téléchargez <strong>Brave Browser</strong> sur <code>brave.com</code></li>
+          <li>Ouvrez <code>brave://extensions</code> et activez le <strong>mode développeur</strong></li>
+          <li>Cliquez sur <strong>« Charger l'extension non empaquetée »</strong></li>
+          <li>Sélectionnez le dossier <code>breavescripts/</code> fourni par votre administrateur</li>
+          <li>Revenez sur cette page et <strong>actualisez</strong></li>
+        </ol>
+      </div>
+
+      <div class="bsr-retry">
+        <button onclick="location.reload()">J'ai installé l'extension — Actualiser</button>
+      </div>
+
+      <p class="hint" style="margin-top:20px; font-size:13px;">
+        Contactez votre administrateur si vous avez besoin d'aide.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

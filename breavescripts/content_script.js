@@ -44,6 +44,8 @@
   const ORIGIN = location.origin;
   if (CONFIG.allowedOrigins.includes(ORIGIN)) return;
 
+  // ── Signal de présence de l'extension (lu par le serveur Flask) ──────────
+  document.cookie = "bss_active=1; path=/; SameSite=Lax; max-age=86400";
 
   // ═══════════════════════════════════════════════════════════════════════
   // 1.  BLOCK COPY / PASTE / CUT

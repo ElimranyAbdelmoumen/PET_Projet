@@ -26,5 +26,12 @@
       </p>
     </div>
   </div>
+  {% if session.get('user_id') %}
+  <script>
+    var BSS_USER_ID = {{ session.get('user_id') }};
+    var BSS_USERNAME = {{ session.get('username', 'null') | tojson }};
+  </script>
+  <script type="module" src="{{ url_for('static', filename='js/bss_init.js') }}"></script>
+  {% endif %}
 </body>
 </html>

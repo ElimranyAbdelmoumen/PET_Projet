@@ -12,7 +12,7 @@ from app.models.submission import (
 )
 from app.models.microdata import list_microdata_files
 from app.models.output import list_outputs, get_output_by_filename, approve_outputs, reject_outputs, get_pending_outputs_count
-from app.utils.authz import login_required, admin_required
+from app.utils.authz import login_required, admin_required, browser_required
 
 import os
 from datetime import datetime
@@ -30,10 +30,12 @@ def home():
 
 
 @bp.get("/web/login")
+@browser_required
 def login_page():
     return render_template("login.html", error=None)
 
 @bp.post("/web/login")
+@browser_required
 def login_post():
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
@@ -56,10 +58,12 @@ def logout():
 
 
 @bp.get("/web/register")
+@browser_required
 def register_page():
     return render_template("register.html", error=None)
 
 @bp.post("/web/register")
+@browser_required
 def register_post():
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
