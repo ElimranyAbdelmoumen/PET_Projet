@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Brave Security Shield",
+  "version": "2.0.0",
+  "description": "Blocks copy/paste, screenshots, screen sharing, DevTools inspection. Watermarks pages with connected user UID.",
+
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "contentSettings"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_script.js"],
+      "css": ["screen_block.css"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Brave Security Shield"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["auth_bridge.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+
+  "minimum_chrome_version": "109"
+}

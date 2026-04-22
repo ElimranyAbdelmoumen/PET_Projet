@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Brave Security Shield</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 300px; font-family: system-ui,-apple-system,sans-serif; font-size: 13px; background: #0f172a; color: #e2e8f0; }
+  header { padding: 14px 16px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+  header h1 { font-size: 13px; font-weight: 600; }
+  .badge { margin-left: auto; font-size: 10px; background: #16a34a; color: #dcfce7; padding: 2px 8px; border-radius: 99px; }
+  .section { padding: 10px 16px; border-bottom: 1px solid #1e293b; }
+  .section h2 { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+  .toggle-row label { color: #cbd5e1; font-size: 12px; }
+  .toggle { position: relative; width: 32px; height: 18px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #334155; border-radius: 9px; cursor: pointer; transition: background .2s; }
+  .slider::before { content: ""; position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: transform .2s; }
+  input:checked + .slider { background: #f97316; }
+  input:checked + .slider::before { transform: translateX(14px); }
+  .slider-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .slider-row label { color: #94a3b8; font-size: 11px; width: 70px; flex-shrink: 0; }
+  .slider-row input[type=range] { flex: 1; accent-color: #f97316; }
+  .slider-row .val { font-size: 11px; color: #f97316; min-width: 32px; text-align: right; }
+  .user-section { padding: 10px 16px; border-bottom: 1px solid #1e293b; }
+  .user-section h2 { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+  #logout-btn { font-size: 10px; color: #475569; background: none; border: none; cursor: pointer; padding: 0; }
+  #logout-btn:hover { color: #ef4444; }
+  #user-card { min-height: 36px; }
+  .log-section { padding: 10px 16px; }
+  .log-section h2 { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  #log-list { max-height: 120px; overflow-y: auto; }
+  .log-item { padding: 4px 8px; margin-bottom: 3px; background: #1e293b; border-radius: 4px; border-left: 2px solid #f97316; font-size: 11px; color: #94a3b8; line-height: 1.4; }
+  .log-item .origin { color: #f97316; font-weight: 500; }
+  .clear-btn { margin-top: 6px; width: 100%; padding: 5px; background: transparent; border: 1px solid #334155; border-radius: 6px; color: #64748b; cursor: pointer; font-size: 11px; }
+  .clear-btn:hover { background: #1e293b; color: #e2e8f0; }
+  input[type=color] { width: 28px; height: 20px; padding: 0; border: none; background: none; cursor: pointer; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <span>🔒</span>
+  <h1>Brave Security Shield</h1>
+  <span class="badge">ACTIF</span>
+</header>
+
+<!-- User identity -->
+<div class="user-section">
+  <h2>Utilisateur connecté <button id="logout-btn">Déconnecter</button></h2>
+  <div id="user-card"></div>
+</div>
+
+<!-- Protections -->
+<div class="section">
+  <h2>Protections</h2>
+  <div class="toggle-row">
+    <label>Bloquer Copier/Coller</label>
+    <label class="toggle"><input type="checkbox" id="blockCopyPaste" checked><span class="slider"></span></label>
+  </div>
+  <div class="toggle-row">
+    <label>Bloquer les Captures</label>
+    <label class="toggle"><input type="checkbox" id="blockScreenshot" checked><span class="slider"></span></label>
+  </div>
+  <div class="toggle-row">
+    <label>Bloquer le Partage d'écran</label>
+    <label class="toggle"><input type="checkbox" id="blockScreenShare" checked><span class="slider"></span></label>
+  </div>
+  <div class="toggle-row">
+    <label>Notifications</label>
+    <label class="toggle"><input type="checkbox" id="notifyUser" checked><span class="slider"></span></label>
+  </div>
+  <div class="toggle-row">
+    <label>Bloquer l'Inspection (DevTools)</label>
+    <label class="toggle"><input type="checkbox" id="blockDevTools" checked><span class="slider"></span></label>
+  </div>
+</div>
+
+<!-- Watermark -->
+<div class="section">
+  <h2>Watermark UID</h2>
+  <div class="toggle-row">
+    <label>Activer le watermark</label>
+    <label class="toggle"><input type="checkbox" id="wmEnabled" checked><span class="slider"></span></label>
+  </div>
+  <div class="slider-row">
+    <label>Opacité</label>
+    <input type="range" id="wmOpacity" min="1" max="30" value="6" step="1">
+    <span class="val" id="opacityLabel">6%</span>
+  </div>
+  <div class="slider-row">
+    <label>Angle</label>
+    <input type="range" id="wmAngle" min="-60" max="0" value="-35" step="5">
+    <span class="val" id="angleLabel">-35°</span>
+  </div>
+  <div class="slider-row">
+    <label>Couleur</label>
+    <input type="color" id="wmColor" value="#ff0000">
+    <span style="font-size:11px;color:#64748b">Couleur du watermark</span>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="log-section">
+  <h2>Journal (<span id="log-count">0</span>)</h2>
+  <div id="log-list"><p style="color:#475569;font-size:11px">Aucune violation détectée.</p></div>
+  <button class="clear-btn" id="clear-log">Effacer le journal</button>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

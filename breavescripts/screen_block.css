@@ -1,0 +1,41 @@
+/*
+ * screen_block.css
+ * Injected at document_start in every frame.
+ * First line of defence: pure CSS — no JS required to activate.
+ */
+
+/* ── Disable text & image selection globally ── */
+* {
+  -webkit-user-select: none !important;
+  -moz-user-select:    none !important;
+  -ms-user-select:     none !important;
+  user-select:         none !important;
+}
+
+/* ── Disable image and media drag ── */
+img, video, canvas, svg {
+  pointer-events:      none !important;
+  -webkit-user-drag:   none !important;
+  user-drag:           none !important;
+}
+
+/* ── Block print / PDF export ── */
+@media print {
+  html, body, body * {
+    visibility:  hidden !important;
+    display:     none   !important;
+  }
+  body::after {
+    content:     "Ce contenu est protégé — impression désactivée.";
+    display:     block  !important;
+    visibility:  visible !important;
+    position:    fixed;
+    inset:       0;
+    background:  #000;
+    color:       #fff;
+    font-size:   20px;
+    font-family: system-ui, sans-serif;
+    text-align:  center;
+    padding-top: 40vh;
+  }
+}
