@@ -1,7 +1,5 @@
 FROM python:3.11-slim
 
-RUN useradd -m -u 10001 runner
-
 WORKDIR /work
 
 # Installer R + headers pour compiler rpy2
@@ -10,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     r-base-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Bibliothèques Python courantes pour data science + rpy2
+# Bibliotheques Python data science + rpy2
 RUN pip install --no-cache-dir \
     pandas \
     numpy \
@@ -23,10 +21,11 @@ RUN pip install --no-cache-dir \
     xlrd \
     rpy2
 
-# Copier le wrapper d'exécution
+# Repertoires outputs et data accessibles en ecriture
+RUN mkdir -p /work/outputs /work/data && chmod 777 /work/outputs /work/data
+
+# Copier le wrapper d'execution
 COPY run_script.py /usr/local/bin/run_script.py
 RUN chmod +x /usr/local/bin/run_script.py
-
-USER runner
 
 ENTRYPOINT ["python", "/usr/local/bin/run_script.py"]

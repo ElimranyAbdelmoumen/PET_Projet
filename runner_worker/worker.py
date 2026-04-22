@@ -10,6 +10,7 @@ DB_PASS = os.environ.get("POSTGRES_PASSWORD", "petpass")
 
 STORAGE_PATH = "/storage"
 HOST_STORAGE_PATH = os.environ.get("HOST_STORAGE_PATH", "/storage")
+CONTAINER_OUTPUTS_BASE = "/app/storage/outputs"
 
 
 def get_db():
@@ -21,7 +22,7 @@ def get_db():
     )
 
 
-def execute_script(file_path):
+def execute_script(file_path, microdata_file_path=None, outputs_dir=None, local_outputs_dir=None):
     local_path = file_path.replace("/app/storage", STORAGE_PATH)
     host_path = file_path.replace("/app/storage", HOST_STORAGE_PATH)
 
@@ -37,9 +38,18 @@ def execute_script(file_path):
         "--memory", "512m",
         "--cpus", "1.0",
         "-v", f"{host_path}:{container_script}:ro",
-        "portwatch-python-runner:1.0",
-        container_script,
     ]
+
+    if microdata_file_path:
+        host_data = microdata_file_path.replace("/app/storage", HOST_STORAGE_PATH)
+        data_filename = os.path.basename(microdata_file_path)
+        cmd += ["-v", f"{host_data}:/work/data/{data_filename}:ro"]
+
+    if outputs_dir:
+        os.makedirs(local_outputs_dir or outputs_dir, exist_ok=True)
+        cmd += ["-v", f"{outputs_dir}:/work/outputs"]
+
+    cmd += ["portwatch-python-runner:1.0", container_script]
 
     try:
         result = subprocess.run(
@@ -49,10 +59,9 @@ def execute_script(file_path):
             timeout=60
         )
 
-        # Parser la sortie pour séparer stdout et outputs
         stdout = result.stdout
         output_section = ""
-        
+
         if "===OUTPUTS===" in stdout:
             parts = stdout.split("===OUTPUTS===")
             stdout = parts[0].replace("===STDOUT===", "").strip()
@@ -60,15 +69,34 @@ def execute_script(file_path):
         else:
             stdout = stdout.replace("===STDOUT===", "").strip()
 
-        # Combiner stdout et outputs pour l'affichage
         full_output = stdout
         if output_section:
-            full_output += "\n\n=== Résultats Python ===\n" + output_section
+            full_output += "\n\n=== Resultats Python ===\n" + output_section
 
         return full_output, result.stderr, result.returncode
 
     except subprocess.TimeoutExpired:
         return "", "Execution timeout (60s max)", -1
+
+
+def collect_outputs(submission_id, local_outputs_dir, conn):
+    if not local_outputs_dir or not os.path.isdir(local_outputs_dir):
+        return False
+
+    files = [f for f in os.listdir(local_outputs_dir)
+             if os.path.isfile(os.path.join(local_outputs_dir, f))]
+    if not files:
+        return False
+
+    cur = conn.cursor()
+    for filename in files:
+        container_path = f"{CONTAINER_OUTPUTS_BASE}/{submission_id}/{filename}"
+        cur.execute(
+            "INSERT INTO submission_outputs (submission_id, filename, file_path) VALUES (%s, %s, %s)",
+            (submission_id, filename, container_path),
+        )
+    cur.close()
+    return True
 
 
 def worker_loop():
@@ -79,9 +107,10 @@ def worker_loop():
         cur = conn.cursor()
 
         cur.execute("""
-        SELECT id,file_path
-        FROM submissions
-        WHERE status='APPROVED'
+        SELECT s.id, s.file_path, m.file_path AS microdata_file_path
+        FROM submissions s
+        LEFT JOIN microdata_files m ON m.guid = s.microdata_guid
+        WHERE s.status='APPROVED'
         LIMIT 1
         """)
 
@@ -89,25 +118,35 @@ def worker_loop():
 
         if row:
 
-            submission_id,file_path = row
+            submission_id, file_path, microdata_file_path = row
 
-            stdout,stderr,code = execute_script(file_path)
+            host_outputs_dir = os.path.join(HOST_STORAGE_PATH, "outputs", str(submission_id))
+            local_outputs_dir = os.path.join(STORAGE_PATH, "outputs", str(submission_id))
+
+            stdout, stderr, code = execute_script(
+                file_path, microdata_file_path,
+                outputs_dir=host_outputs_dir, local_outputs_dir=local_outputs_dir
+            )
 
             status = "FINISHED" if code == 0 else "FAILED"
+
+            has_outputs = collect_outputs(submission_id, local_outputs_dir, conn)
+            outputs_status = "PENDING_VALIDATION" if has_outputs else "NONE"
 
             cur.execute("""
             UPDATE submissions
             SET status=%s,
+                outputs_status=%s,
                 stdout=%s,
                 stderr=%s,
                 exit_code=%s,
                 updated_at=NOW()
             WHERE id=%s
-            """,(status,stdout,stderr,code,submission_id))
+            """, (status, outputs_status, stdout, stderr, code, submission_id))
 
             conn.commit()
 
-            print("Executed submission",submission_id)
+            print("Executed submission", submission_id)
 
         cur.close()
         conn.close()

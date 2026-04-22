@@ -75,6 +75,44 @@
       {% endif %}
     </div>
     {% endif %}
+
+    {% if outputs %}
+    <div class="card">
+      <h3>Fichiers de sortie
+        <span class="badge {{ submission.outputs_status|lower }} badge-inline">{{ submission.outputs_status }}</span>
+      </h3>
+
+      <table class="table outputs-table">
+        <thead>
+          <tr><th>Fichier</th><th>Date</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for o in outputs %}
+          <tr>
+            <td>{{ o.filename }}</td>
+            <td>{{ o.created_at }}</td>
+            <td>
+              <a href="{{ url_for('web.download_output', sid=submission.id, filename=o.filename) }}" class="btn-link">
+                Télécharger
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if submission.outputs_status == 'PENDING_VALIDATION' %}
+      <div style="display:flex; gap:12px;">
+        <form method="post" action="/web/admin/submissions/{{ submission.id }}/approve-outputs" class="inline">
+          <button type="submit">Approuver les outputs</button>
+        </form>
+        <form method="post" action="/web/admin/submissions/{{ submission.id }}/reject-outputs" class="inline">
+          <button type="submit" class="danger">Rejeter les outputs</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js" crossorigin="anonymous"></script>

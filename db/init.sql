@@ -6,16 +6,35 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS microdata_files (
+  id SERIAL PRIMARY KEY,
+  guid UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  file_path TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS submissions (
   id SERIAL PRIMARY KEY,
   user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name VARCHAR(100),
   file_path TEXT NOT NULL,
+  microdata_guid UUID REFERENCES microdata_files(guid) ON DELETE SET NULL,
   status VARCHAR(10) NOT NULL CHECK (status IN ('PENDING','APPROVED','REJECTED','RUNNING','FINISHED','FAILED')),
+  outputs_status VARCHAR(20) NOT NULL DEFAULT 'NONE' CHECK (outputs_status IN ('NONE','PENDING_VALIDATION','APPROVED','REJECTED')),
   stdout TEXT,
   stderr TEXT,
   exit_code INT,
   logs TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS submission_outputs (
+  id SERIAL PRIMARY KEY,
+  submission_id INT NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  filename VARCHAR(255) NOT NULL,
+  file_path TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

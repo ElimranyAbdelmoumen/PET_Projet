@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, send_file, abort
 
 from app.models.user import create_user, get_user_by_username, verify_password
 from app.models.submission import (
@@ -10,6 +10,8 @@ from app.models.submission import (
     list_user_submissions,
     update_status,
 )
+from app.models.microdata import list_microdata_files
+from app.models.output import list_outputs, get_output_by_filename, approve_outputs, reject_outputs, get_pending_outputs_count
 from app.utils.authz import login_required, admin_required
 
 import os
@@ -80,12 +82,14 @@ def submit_page():
     search = request.args.get("q", "").strip() or None
     result = get_submission(sid) if sid else None
     submissions = list_user_submissions(user_id, search=search)
+    microdata_files = list_microdata_files()
     return render_template(
         "submit.html",
         username=session.get("username"),
         result=result,
         submissions=submissions,
         search=search,
+        microdata_files=microdata_files,
         error=None,
     )
 
@@ -94,33 +98,37 @@ def submit_page():
 def submit_post():
     code = request.form.get("code", "")
     name = request.form.get("name", "").strip() or None
+    microdata_guid = request.form.get("microdata_guid", "").strip() or None
+    language = request.form.get("language", "python").strip()
+
+    user_id = session["user_id"]
 
     if not code.strip():
-        user_id = session["user_id"]
         submissions = list_user_submissions(user_id)
+        microdata_files = list_microdata_files()
         return render_template(
             "submit.html",
             username=session.get("username"),
             result=None,
             submissions=submissions,
+            microdata_files=microdata_files,
             search=None,
             error="Code requis.",
         )
-
-    user_id = session["user_id"]
 
     base_dir = "/app/storage/submissions"
     os.makedirs(base_dir, exist_ok=True)
 
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     safe_name = "".join(c if c.isalnum() or c in "_-" else "_" for c in (name or "script"))
-    filename = f"user{user_id}_{ts}_{safe_name}.py"
+    ext = ".R" if language == "r" else ".py"
+    filename = f"user{user_id}_{ts}_{safe_name}{ext}"
     file_path = os.path.join(base_dir, filename)
 
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(code)
 
-    created = create_submission(user_id, file_path, name=name)
+    created = create_submission(user_id, file_path, name=name, microdata_guid=microdata_guid)
     return redirect(url_for("web.submit_page", sid=created["id"]))
 
 
@@ -154,11 +162,13 @@ def user_view_submission(sid: int):
     except FileNotFoundError:
         code_content = "# Fichier introuvable"
 
+    outputs = list_outputs(sid) if sub["status"] == "FINISHED" else []
     return render_template(
         "user_view_submission.html",
         username=session.get("username"),
         submission=sub,
         code_content=code_content,
+        outputs=outputs,
     )
 
 
@@ -166,7 +176,13 @@ def user_view_submission(sid: int):
 @admin_required
 def admin_submissions():
     subs = list_all_submissions()
-    return render_template("admin_submissions.html", username=session.get("username"), submissions=subs)
+    pending_outputs = get_pending_outputs_count()
+    return render_template(
+        "admin_submissions.html",
+        username=session.get("username"),
+        submissions=subs,
+        pending_outputs=pending_outputs,
+    )
 
 
 @bp.get("/web/admin/submissions/<int:sid>")
@@ -177,19 +193,19 @@ def admin_view_submission(sid: int):
         return redirect(url_for("web.admin_submissions"))
 
     code_content = ""
-    file_path = sub["file_path"]
-    local_path = file_path.replace("/app/storage", "/app/storage")
     try:
-        with open(local_path, "r", encoding="utf-8") as f:
+        with open(sub["file_path"], "r", encoding="utf-8") as f:
             code_content = f.read()
     except FileNotFoundError:
         code_content = "# Fichier introuvable"
 
+    outputs = list_outputs(sid)
     return render_template(
         "admin_view_submission.html",
         username=session.get("username"),
         submission=sub,
         code_content=code_content,
+        outputs=outputs,
     )
 
 
@@ -199,8 +215,42 @@ def admin_approve(sid: int):
     update_status(sid, "APPROVED")
     return redirect(url_for("web.admin_submissions"))
 
+
 @bp.post("/web/admin/submissions/<int:sid>/reject")
 @admin_required
 def admin_reject(sid: int):
     update_status(sid, "REJECTED")
     return redirect(url_for("web.admin_submissions"))
+
+
+@bp.post("/web/admin/submissions/<int:sid>/approve-outputs")
+@admin_required
+def admin_approve_outputs(sid: int):
+    approve_outputs(sid)
+    return redirect(url_for("web.admin_view_submission", sid=sid))
+
+
+@bp.post("/web/admin/submissions/<int:sid>/reject-outputs")
+@admin_required
+def admin_reject_outputs(sid: int):
+    reject_outputs(sid)
+    return redirect(url_for("web.admin_view_submission", sid=sid))
+
+
+@bp.get("/web/outputs/<int:sid>/<filename>")
+@login_required
+def download_output(sid: int, filename: str):
+    user_id = session["user_id"]
+    role = session.get("role")
+
+    sub = get_submission_by_id(sid) if role == "ADMIN" else get_user_submission(user_id, sid)
+    if not sub:
+        abort(404)
+    if role != "ADMIN" and sub["outputs_status"] != "APPROVED":
+        abort(403)
+
+    output = get_output_by_filename(sid, filename)
+    if not output:
+        abort(404)
+
+    return send_file(output["file_path"], as_attachment=True, download_name=filename)
