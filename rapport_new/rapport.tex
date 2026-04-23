@@ -1,0 +1,610 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=3cm, right=3cm}
+\usepackage{parskip}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{listings}
+
+% Couleurs
+\definecolor{myblue}{RGB}{37,99,235}
+\definecolor{mygray}{RGB}{100,116,139}
+\definecolor{mylight}{RGB}{241,245,249}
+\definecolor{codebg}{RGB}{248,250,252}
+\definecolor{codekey}{RGB}{99,102,241}
+\definecolor{codestr}{RGB}{16,185,129}
+\definecolor{codecmt}{RGB}{148,163,184}
+
+% Style listings -- langue neutre par defaut
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekey}\bfseries,
+  stringstyle=\color{codestr},
+  commentstyle=\color{codecmt}\itshape,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{myblue!40},
+  numbers=left,
+  numberstyle=\tiny\color{mygray},
+  numbersep=8pt,
+  showstringspaces=false,
+  tabsize=2,
+  xleftmargin=12pt,
+  aboveskip=6pt,
+  belowskip=6pt,
+}
+
+% En-tete
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{mygray}{PET Platform -- Rapport de developpement}}
+\fancyhead[R]{\small\textbf{\textcolor{myblue}{Issues \#6 \& \#7}}}
+\fancyfoot[C]{\small\thepage}
+\fancyfoot[L]{\small\textit{Abdelmoumen Elimrany}}
+\fancyfoot[R]{\small 22 avril 2026}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Hyperliens
+\hypersetup{
+  colorlinks=true, linkcolor=myblue, urlcolor=myblue,
+  pdftitle={PET Platform - Rapport}, pdfauthor={Abdelmoumen Elimrany}
+}
+
+% Commande ok
+\newcommand{\ok}{\textcolor{green!60!black}{\textbf{OK}}}
+\newcommand{\statut}[1]{\texttt{\textcolor{myblue}{#1}}}
+
+% ============================================================
+\begin{document}
+
+% Page de titre
+\begin{titlepage}
+\thispagestyle{empty}
+\vspace*{3cm}
+\begin{center}
+  {\color{myblue}\rule{\linewidth}{2pt}}\\[0.5cm]
+  {\Huge\bfseries PET Platform}\\[0.3cm]
+  {\large\color{mygray} Privacy-Enhancing Technologies}\\[0.2cm]
+  {\color{myblue}\rule{\linewidth}{2pt}}\\[1.5cm]
+
+  {\LARGE\bfseries Rapport de developpement}\\[0.4cm]
+  {\large Implementation des issues \#6 et \#7}\\[2cm]
+
+  \begin{tabular}{ll}
+    \textbf{Etudiant}  & Abdelmoumen Elimrany \\[4pt]
+    \textbf{Encadrant} & Achahbi \\[4pt]
+    \textbf{Date}      & 22 avril 2026 \\[4pt]
+    \textbf{Depot}     & \url{github.com/ElimranyAbdelmoumen/PET\_Projet} \\[4pt]
+    \textbf{Branche}   & \texttt{main} (commit \texttt{bb816b0}) \\
+  \end{tabular}
+\end{center}
+\vfill
+\begin{center}
+  \colorbox{myblue}{\textcolor{white}{\textbf{~Issue \#6~}}}~Support R, Microdata, Collecte des outputs
+  \quad
+  \colorbox{black}{\textcolor{white}{\textbf{~Issue \#7~}}}~Navigateur securise Brave
+\end{center}
+\end{titlepage}
+
+% Resume
+\newpage
+\thispagestyle{fancy}
+
+\noindent\colorbox{mylight}{%
+  \begin{minipage}{\linewidth}
+    \vspace{8pt}
+    \textbf{\large Resume executif}\\[6pt]
+    Ce rapport presente l'implementation de deux issues sur la \textbf{PET Platform},
+    une application web Flask de soumission securisee de scripts scientifiques Python/R.\\[4pt]
+    \textbf{Issue \#6} ajoute : execution R (\texttt{Rscript --vanilla}), selecteur de fichier
+    microdata, et workflow de collecte/validation des fichiers de sortie.\\[4pt]
+    \textbf{Issue \#7} securise l'acces via l'extension Brave Security Shield (MV3) :
+    protections anti-exfiltration et enforcement HTTP 403 cote Flask.\\[4pt]
+    Le \textbf{benchmark} (8 scenarios x 5 runs) confirme une latence moyenne de
+    \textbf{1,5 secondes} sans aucune erreur sur 40 executions.
+    \vspace{8pt}
+  \end{minipage}%
+}
+
+\vspace{0.5cm}
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Presentation du projet}
+
+\subsection{Contexte}
+
+La \textbf{PET Platform} permet a des chercheurs de soumettre des scripts de traitement
+de donnees pour execution dans un environnement \textbf{entierement isole}. Un
+administrateur valide les resultats avant qu'ils soient accessibles a l'utilisateur,
+garantissant que les donnees microdata sensibles ne quittent jamais le serveur.
+
+\subsection{Architecture technique}
+
+\begin{table}[H]
+\centering
+\caption{Composants de la PET Platform}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}lllX@{}}
+\toprule
+Composant & Technologie & Version & Role \\
+\midrule
+Backend       & Flask + Jinja2    & Python 3.11 & Interface web, auth, routes \\
+Base donnees  & PostgreSQL        & 16          & Soumissions, outputs, users \\
+Worker        & Python            & 3.11        & Execution asynchrone \\
+Sandbox       & Docker isole      & --          & Conteneur ephemere par soumission \\
+Navigateur    & Brave + Extension & MV3         & Acces securise, protections client \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Cycle de vie d'une soumission}
+
+\begin{table}[H]
+\centering
+\caption{Etats d'une soumission}
+\begin{tabularx}{\textwidth}{@{}clX@{}}
+\toprule
+Etape & Etat & Description \\
+\midrule
+1 & \statut{PENDING}  & L'utilisateur soumet le script \\
+2 & \statut{APPROVED} & L'administrateur approuve l'execution \\
+3 & \statut{RUNNING}  & Le worker lance le conteneur Docker \\
+4 & \statut{FINISHED} & Execution terminee, outputs collectes \\
+5 & \statut{REJECTED} & L'administrateur peut rejeter a l'etape 2 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ============================================================
+\section{Issue \#6 -- Support R, microdata et collecte des outputs}
+
+\noindent\colorbox{myblue!10}{\parbox{\linewidth}{\vspace{4pt}
+\textbf{Objectif :} (1) Executer des scripts R en plus de Python,
+(2) associer un fichier microdata a chaque soumission,
+(3) collecter et valider les fichiers de sortie produits.
+\vspace{4pt}}}
+
+\vspace{6pt}
+
+\subsection{Support R dans le runner Docker}
+
+\subsubsection*{Dockerfile -- ajout de R}
+
+\begin{lstlisting}
+# Installation de R
+RUN apt-get update && apt-get install -y r-base r-base-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Packages Python + rpy2
+RUN pip install --no-cache-dir pandas numpy matplotlib \
+    scikit-learn scipy seaborn rpy2
+
+# Repertoires de sortie (droits ouverts)
+RUN mkdir -p /work/outputs /work/data && chmod 777 /work/outputs /work/data
+
+ENTRYPOINT ["python", "/usr/local/bin/run_script.py"]
+\end{lstlisting}
+
+\textbf{Correction permissions :} L'utilisateur \texttt{runner} (UID 10001) a ete supprime
+du Dockerfile -- il empechait l'ecriture dans \texttt{/work/outputs/} car le repertoire
+hote etait detenu par root.
+
+\subsubsection*{Detection Python / R dans le worker}
+
+\begin{lstlisting}
+# worker.py -- selection de l'interpreteur selon l'extension
+ext = os.path.splitext(file_path)[1].lower() or ".py"
+container_script = f"/work/script{ext}"
+# .py -> exec() Python avec capture des variables
+# .R  -> Rscript --vanilla /work/script.R
+\end{lstlisting}
+
+\begin{lstlisting}
+# run_script.py -- routing Python / R
+if script_path.endswith(".R"):
+    result = subprocess.run(
+        ["Rscript", "--vanilla", script_path],
+        capture_output=True, text=True, timeout=55
+    )
+else:
+    # exec() avec capture automatique (result, output, df)
+    ...
+\end{lstlisting}
+
+\subsection{Selecteur de fichier microdata}
+
+Les fichiers microdata (CSV, Excel) sont stockes en base avec un UUID.
+L'utilisateur selectionne le fichier dans un menu deroulant lors de la soumission.
+
+\begin{lstlisting}
+-- Schema base de donnees (db/init.sql)
+CREATE TABLE microdata_files (
+    id         SERIAL PRIMARY KEY,
+    guid       UUID DEFAULT gen_random_uuid() UNIQUE,
+    name       VARCHAR(255) NOT NULL,
+    file_path  TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE submissions
+    ADD COLUMN microdata_guid UUID REFERENCES microdata_files(guid),
+    ADD COLUMN outputs_status VARCHAR(20) DEFAULT 'NONE';
+\end{lstlisting}
+
+Le fichier est monte \textbf{en lecture seule} dans le conteneur sous
+\texttt{/work/data/<nom\_fichier>}. Exemples d'utilisation :
+
+\begin{lstlisting}
+# Python
+import pandas as pd
+df = pd.read_csv("/work/data/population_sample.csv")
+print(df.describe())
+\end{lstlisting}
+
+\begin{lstlisting}
+# R
+df <- read.csv("/work/data/population_sample.csv")
+cat("Lignes :", nrow(df), "\n")
+print(summary(df))
+\end{lstlisting}
+
+\subsection{Collecte et validation des fichiers de sortie}
+
+\begin{table}[H]
+\centering
+\caption{Workflow de validation des outputs}
+\begin{tabularx}{\textwidth}{@{}clX@{}}
+\toprule
+Etape & Acteur & Action \\
+\midrule
+1 & Script         & Ecrit ses fichiers dans \texttt{/work/outputs/} \\
+2 & Worker         & Scanne le repertoire local apres execution \\
+3 & Worker         & Insere dans \texttt{submission\_outputs} (statut PENDING\_VALIDATION) \\
+4 & Administrateur & Approuve ou rejette chaque fichier \\
+5 & Utilisateur    & Telecharge si APPROVED \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}
+-- Table des fichiers de sortie
+CREATE TABLE submission_outputs (
+    id            SERIAL PRIMARY KEY,
+    submission_id INTEGER REFERENCES submissions(id) ON DELETE CASCADE,
+    filename      VARCHAR(255) NOT NULL,
+    file_path     TEXT NOT NULL,
+    created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+\end{lstlisting}
+
+\subsubsection*{Correction du bug chemin local / chemin hote}
+
+\textbf{Probleme :} le worker (dans son conteneur) ne peut pas utiliser le chemin
+Windows de l'hote pour \texttt{os.listdir}. \textbf{Solution :} deux chemins distincts.
+
+\begin{lstlisting}
+# Chemin pour Docker Desktop (-v mount)
+host_outputs_dir = os.path.join(HOST_STORAGE_PATH, "outputs", str(sid))
+# ex: /host_mnt/c/Users/.../storage/outputs/42
+
+# Chemin accessible depuis le worker (volume docker-compose)
+local_outputs_dir = os.path.join(STORAGE_PATH, "outputs", str(sid))
+# ex: /storage/outputs/42
+
+execute_script(file_path, microdata_path,
+    outputs_dir=host_outputs_dir,        # pour -v
+    local_outputs_dir=local_outputs_dir) # pour makedirs + listdir
+
+collect_outputs(submission_id, local_outputs_dir, conn)
+\end{lstlisting}
+
+% ============================================================
+\section{Issue \#7 -- Navigateur securise Brave}
+
+\noindent\colorbox{myblue!10}{\parbox{\linewidth}{\vspace{4pt}
+\textbf{Objectif :} restreindre l'acces a la plateforme au seul navigateur Brave
+avec l'extension Brave Security Shield (MV3) installee, et appliquer les
+protections cote client.
+\vspace{4pt}}}
+
+\vspace{6pt}
+
+\subsection{Architecture de l'extension (Manifest V3)}
+
+\begin{table}[H]
+\centering
+\caption{Fichiers de l'extension}
+\begin{tabularx}{\textwidth}{@{}>{\ttfamily}lX@{}}
+\toprule
+\normalfont Fichier & Role \\
+\midrule
+manifest.json      & Declaration MV3, permissions, hotes autorises \\
+content\_script.js & Protections injectees dans chaque page \\
+background.js      & Service worker -- violations, gestion identite \\
+popup.html/js      & Interface admin : toggles, watermark, journal \\
+screen\_block.css  & Overlay CSS de blocage visuel \\
+auth\_bridge.js    & API JS pour transmettre l'identite Flask vers BSS \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Protections implementees}
+\begin{tabularx}{\textwidth}{@{}lXc@{}}
+\toprule
+Protection & Mecanisme & Actif \\
+\midrule
+Copier/Coller    & Interception copy, cut, paste + Clipboard API      & \ok \\
+Capture ecran    & Detection PrintScreen + overlay CSS + @media print & \ok \\
+Partage ecran    & Remplacement de \texttt{getDisplayMedia()}          & \ok \\
+DevTools         & 7 techniques : taille fenetre, F12, debugger...     & \ok \\
+Filigrane        & SVG diagonal avec UID + date, configurable          & \ok \\
+Journal          & chrome.storage.local, 200 entrees max               & \ok \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Integration Flask}
+
+\subsubsection*{Detection par cookie de presence}
+
+L'extension pose le cookie \texttt{bss\_active=1} (duree 24h) a chaque visite.
+Flask verifie ce cookie sur \textbf{toutes les routes} via \texttt{browser\_required} :
+
+\begin{lstlisting}
+# backend/app/utils/authz.py
+def browser_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not request.cookies.get("bss_active"):
+            # HTTP 403 + page d'installation
+            return render_template("browser_required.html"), 403
+        return fn(*args, **kwargs)
+    return wrapper
+\end{lstlisting}
+
+Si le cookie est absent : HTTP 403 + page d'installation de l'extension.
+Si present : acces autorise normalement.
+
+\subsubsection*{Filigrane -- liaison Flask / Extension}
+
+Flask injecte l'identite de l'utilisateur dans la page via Jinja2 :
+
+\begin{lstlisting}
+<!-- En bas de chaque template protege -->
+<script>
+  var BSS_USER_ID  = {{ session.get('user_id') }};
+  var BSS_USERNAME = {{ session.get('username') | tojson }};
+</script>
+<script type="module" src="/static/js/bss_init.js"></script>
+\end{lstlisting}
+
+\begin{lstlisting}
+// static/js/bss_init.js
+import { initBSSAuth } from "./auth_bridge.js";
+if (typeof BSS_USER_ID !== "undefined" && BSS_USER_ID) {
+    initBSSAuth({ uid: String(BSS_USER_ID), displayName: BSS_USERNAME || null });
+}
+\end{lstlisting}
+
+\subsection{Installation de l'extension}
+
+\begin{enumerate}
+  \item Telecharger \textbf{Brave Browser} sur \url{https://brave.com}
+  \item Ouvrir \texttt{brave://extensions} et activer le mode developpeur
+  \item Cliquer sur <<\,Charger l'extension non empaquetee\,>>
+  \item Selectionner le dossier \texttt{breavescripts/} du projet
+  \item Copier l'Extension ID et le saisir dans \texttt{auth\_bridge.js} (ligne 37)
+  \item Acceder a la plateforme : le filigrane et les protections sont actifs
+\end{enumerate}
+
+L'extension est installee et configuree avec l'ID reel :
+
+\begin{lstlisting}
+// breavescripts/auth_bridge.js  et  backend/static/js/auth_bridge.js
+const BSS_EXTENSION_ID = "dikpdjlignemlnikaegcblghblbejfjd";
+\end{lstlisting}
+
+\subsection{Tests et validation en conditions reelles}
+
+Les tests ont ete effectues dans Brave avec l'extension chargee et la plateforme
+en cours d'execution (\texttt{http://localhost:5000}).
+
+\begin{table}[H]
+\centering
+\caption{Resultats des tests de l'Issue \#7}
+\begin{tabularx}{\textwidth}{@{}lXc@{}}
+\toprule
+\textbf{Test} & \textbf{Comportement observe} & \textbf{Statut} \\
+\midrule
+Acces depuis Chrome/Firefox
+  & Page HTTP 403 affichee, acces refuse
+  & \ok \\
+Acces depuis Brave sans extension
+  & Page HTTP 403 affichee, acces refuse
+  & \ok \\
+Acces depuis Brave avec extension
+  & Plateforme accessible normalement
+  & \ok \\
+Filigrane sans connexion
+  & Texte <<\,CONFIDENTIEL\,>> diagonal visible sur toutes les pages
+  & \ok \\
+Filigrane apres connexion (user: abdel)
+  & Filigrane affiche <<\,abdel\,>> avec date en diagonal
+  & \ok \\
+Touche PrintScreen
+  & Overlay noir 1,8 secondes, violation enregistree
+  & \ok \\
+Touche F12 / DevTools
+  & Overlay <<\,ACCES REFUSE\,>> avec UID et timestamp
+  & \ok \\
+Ctrl+C / Ctrl+V
+  & Toast rouge <<\,Copier/Coller desactive\,>>
+  & \ok \\
+Clic droit
+  & Menu contextuel desactive
+  & \ok \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\colorbox{myblue!10}{\parbox{\linewidth}{\vspace{4pt}
+\textbf{Limite documentee :} les outils de capture niveau OS (Win+Shift+S, OBS, Snagit)
+ne peuvent pas etre bloques par une extension navigateur -- cela necessite un agent
+systeme (C++). Cette limite est explicitement mentionnee dans la documentation
+du prof (\texttt{breavescripts/readme.md}).
+\vspace{4pt}}}
+
+% ============================================================
+\section{Benchmark du sandbox}
+
+\subsection{Protocole}
+
+\begin{table}[H]
+\centering
+\caption{Conditions du benchmark}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+Parametre & Valeur \\
+\midrule
+Image Docker   & \texttt{portwatch-python-runner:1.0} \\
+Limites        & 512 Mo RAM, 1 CPU, reseau desactive (\texttt{--network none}) \\
+Timeout        & 60 secondes par soumission \\
+Methode        & 5 executions par scenario, mesure du temps total docker run \\
+Environnement  & Windows 11 Pro, Docker Desktop 4.x (WSL2) \\
+Total          & 8 scenarios x 5 runs = \textbf{40 executions} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Resultats}
+
+\begin{table}[H]
+\centering
+\caption{Temps d'execution par scenario (ms)}
+\begin{tabularx}{\textwidth}{@{}Xrrrrrr@{}}
+\toprule
+Scenario & R1 & R2 & R3 & R4 & R5 & Moy. \\
+\midrule
+\multicolumn{7}{@{}l}{\textit{Python}} \\
+\quad Hello world             & 1611 & 2070 & 1417 & 1689 & 1379 & \textbf{1633} \\
+\quad Pandas describe (1000L) & 1347 & 1502 & 1351 & 1271 & 1361 & \textbf{1366} \\
+\quad Sklearn LinearRegression& 1395 & 1514 & 1253 & 1484 & 1427 & \textbf{1414} \\
+\quad Lecture microdata CSV   & 1293 & 1593 & 1395 & 1545 & 1737 & \textbf{1512} \\
+\quad Ecriture output CSV     & 1570 & 1601 & 1501 & 1344 & 1398 & \textbf{1482} \\
+\midrule
+\multicolumn{7}{@{}l}{\textit{R}} \\
+\quad Hello world             & 1613 & 1613 & 1375 & 1423 & 1344 & \textbf{1473} \\
+\quad rnorm(1000) + stats     & 1743 & 1483 & 1339 & 1600 & 1484 & \textbf{1529} \\
+\quad Lecture microdata CSV   & 1424 & 1759 & 1631 & 1464 & 1332 & \textbf{1522} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Analyse}
+
+\textbf{Demarrage dominant :} la latence (1,3--1,7 s) est causee par le demarrage
+du conteneur Docker. Le calcul lui-meme (pandas, sklearn, R stats) prend quelques
+millisecondes -- le sandbox isole n'introduit pas de penalite de calcul significative.
+
+\textbf{Python vs R -- performances equivalentes :} la difference moyenne est de
+\textbf{27 ms} (Python 1481 ms, R 1508 ms), en dessous de la variabilite naturelle
+(ecart-type ~150 ms). Les deux langages sont interchangeables.
+
+\textbf{Overhead microdata/outputs negligeable :} ajouter un CSV en entree ou en
+sortie represente moins de 10\% de la latence totale.
+
+\begin{table}[H]
+\centering
+\caption{Verification des contraintes}
+\begin{tabularx}{\textwidth}{@{}lXc@{}}
+\toprule
+Contrainte & Resultat & Statut \\
+\midrule
+Isolation reseau  & Aucun paquet sortant detecte        & \ok \\
+Memoire 512 Mo    & Jamais atteinte                     & \ok \\
+CPU 1 core        & Respecte                            & \ok \\
+Timeout 60 s      & Moyenne 1,5 s (marge x40)           & \ok \\
+Python            & pandas, numpy, sklearn disponibles  & \ok \\
+R                 & stats, utils, base disponibles      & \ok \\
+Microdata         & /work/data/ fonctionnel             & \ok \\
+Outputs           & /work/outputs/ fonctionnel          & \ok \\
+Taux erreur       & 0 erreur / 40 executions            & \ok \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ============================================================
+\section{Conclusion}
+
+\noindent\colorbox{green!8}{\parbox{\linewidth}{\vspace{6pt}
+\textbf{Les deux issues ont ete integralement implementees et mergees sur \texttt{main} :}
+\begin{itemize}
+  \item \textbf{Issue \#6} -- Support R + selecteur microdata + collecte/validation des
+        outputs avec workflow administrateur complet
+  \item \textbf{Issue \#7} -- Extension Brave Security Shield : enforcement HTTP 403,
+        filigrane utilisateur, 6 protections anti-exfiltration actives
+\end{itemize}
+\vspace{6pt}}}
+
+\vspace{8pt}
+Le benchmark confirme un cout fixe de \textbf{1,5 s} de demarrage sandbox, largement
+acceptable pour une plateforme scientifique. Python et R sont a performances equivalentes,
+et aucune des 40 executions n'a produit d'erreur.
+
+\vspace{1.5cm}
+\begin{flushright}
+  \textbf{Abdelmoumen Elimrany}\\
+  \textcolor{mygray}{22 avril 2026}\\
+  \small\url{github.com/ElimranyAbdelmoumen/PET_Projet}
+\end{flushright}
+
+% ============================================================
+\newpage
+\section*{Annexe -- Structure du projet}
+\addcontentsline{toc}{section}{Annexe -- Structure du projet}
+
+\begin{lstlisting}
+PET_Projet/
+|-- backend/
+|   |-- app/
+|   |   |-- __init__.py        # Factory Flask, blueprint web
+|   |   |-- routes/web.py      # Toutes les routes HTML
+|   |   |-- static/js/         # auth_bridge.js, bss_init.js
+|   |   |-- templates/         # login, submit, admin_*, user_view_*
+|   |   +-- utils/authz.py     # login/admin/browser_required
+|   +-- requirements.txt
+|-- benchmark/
+|   |-- run_benchmarks.sh      # 40 runs
+|   +-- results.txt
+|-- breavescripts/             # Extension Brave Security Shield MV3
+|   |-- manifest.json
+|   |-- content_script.js
+|   |-- background.js
+|   +-- auth_bridge.js
+|-- db/init.sql                # Schema PostgreSQL
+|-- docker/docker-compose.yml  # Backend + DB + Worker
+|-- rapport/
+|   |-- rapport.tex
+|   +-- rapport.pdf
+|-- runner/
+|   |-- Dockerfile             # Sandbox Python + R
+|   +-- run_script.py
+|-- runner_worker/worker.py    # Boucle asynchrone
++-- storage/microdata/
+\end{lstlisting}
+
+\end{document}
