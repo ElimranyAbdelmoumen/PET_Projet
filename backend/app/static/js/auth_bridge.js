@@ -34,7 +34,7 @@
  */
 
 // ▶  Replace with your actual extension ID from brave://extensions
-const BSS_EXTENSION_ID = "__YOUR_EXTENSION_ID__";
+const BSS_EXTENSION_ID = "dikpdjlignemlnikaegcblghblbejfjd";
 
 /**
  * Send the authenticated user's identity to the BSS extension.
