@@ -74,7 +74,7 @@ def list_user_submissions(user_id: int, search: str = None):
 def get_user_submission(user_id: int, submission_id: int):
     return fetchone(
         """
-        SELECT id, name, file_path, status, stdout, stderr, exit_code, created_at
+        SELECT id, name, file_path, status, outputs_status, stdout, stderr, exit_code, created_at
         FROM submissions
         WHERE id = %s AND user_id = %s
         """,

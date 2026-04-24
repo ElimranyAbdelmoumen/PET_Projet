@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, send_file, abort
+from flask import Blueprint, render_template, request, redirect, url_for, session, send_file, abort, jsonify
 
 from app.models.user import create_user, get_user_by_username, verify_password
 from app.models.submission import (
@@ -15,6 +15,8 @@ from app.models.output import list_outputs, get_output_by_filename, approve_outp
 from app.utils.authz import login_required, admin_required, browser_required
 
 import os
+import py_compile
+import tempfile
 from datetime import datetime
 
 bp = Blueprint("web", __name__)
@@ -76,6 +78,35 @@ def register_post():
 
     create_user(username, password, role="USER")
     return redirect(url_for("web.login_page"))
+
+
+@bp.post("/web/lint")
+@login_required
+def lint_python():
+    code = (request.get_json(silent=True) or {}).get("code", "")
+    if not code.strip():
+        return jsonify({"ok": True})
+    with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False, encoding="utf-8") as f:
+        f.write(code)
+        tmp = f.name
+    try:
+        py_compile.compile(tmp, doraise=True)
+        return jsonify({"ok": True})
+    except py_compile.PyCompileError as e:
+        msg = str(e)
+        line = None
+        col = None
+        import re
+        m = re.search(r"line (\d+)", msg)
+        if m:
+            line = int(m.group(1))
+        m2 = re.search(r"\((\w+), (\d+)\)", msg)
+        if m2:
+            col = int(m2.group(2))
+        clean = re.sub(r".*Sorry:.*\n?", "", msg).strip()
+        return jsonify({"ok": False, "error": clean or msg, "line": line, "col": col})
+    finally:
+        os.unlink(tmp)
 
 
 @bp.get("/web/submit")

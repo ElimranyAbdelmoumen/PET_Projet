@@ -4,8 +4,24 @@
   <meta charset="utf-8" />
   <title>Submit - PET</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" integrity="sha512-0k9R+K8Smtmq/Op8Dm3XgtYj/OEr2Zb48j1vYvk4VHKZrnk7MrmhoLQO8MuYpdPnrBxE3KRS6LNlMut5CnvUNA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" integrity="sha512-3TrD4ibh5raBGnlr1JbikKpKt+0Ma5YrnNXTVR2oD4+vC4XzY/aWzB8CKztCOM8rtz6RffgJdnvRBc3pE5cAsw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    #monaco-container {
+      width: 100%;
+      height: 400px;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    #lint-status {
+      font-size: 12px;
+      min-height: 18px;
+      margin-bottom: 8px;
+      color: #6b7280;
+    }
+    #lint-status.error { color: #ef4444; }
+    #lint-status.ok { color: #22c55e; }
+  </style>
 </head>
 <body>
   <div class="topbar">
@@ -59,13 +75,9 @@
         {% endif %}
 
         <label for="code">Code</label>
-        <textarea
-          id="code"
-          name="code"
-          class="code-editor"
-          placeholder="Écrivez ici votre code..."
-          required
-        ></textarea>
+        <div id="monaco-container"></div>
+        <div id="lint-status"></div>
+        <textarea id="code" name="code" style="display:none;"></textarea>
 
         <details style="margin-top:12px;">
           <summary style="cursor:pointer; color:#2563eb;">Bibliothèques disponibles & exemples</summary>
@@ -97,7 +109,6 @@ cat("Moyenne age:", mean(df$age), "\n")</pre>
         </details>
 
         <button type="submit" style="margin-top:16px;">Soumettre (PENDING)</button>
->>>>>>> Stashed changes
       </form>
     </div>
 
@@ -161,41 +172,166 @@ cat("Moyenne age:", mean(df$age), "\n")</pre>
     </div>
   </div>
 
-  <!-- CodeMirror JS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js" integrity="sha512-zgQd1wXBGWYTkU9Xh8HMScVYAVpTuikkK9nw2Z5arZvEHCrx0+5RTbf1nthzkibPA9BREAVUSAX9AFgmpSHaHQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js" integrity="sha512-QtOzMs+9uW9/LPvd2zY+W3YVaVg2LUaI4mQjbEh6z6DdobvOWxmXjke5SMyHnkNldYzALuP0tqgcDRdrUsTolw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/r/r.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
+  <!-- Monaco Editor -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
   <script>
-    (function() {
-      var textarea = document.getElementById("code");
-      if (!textarea) return;
+  (function () {
+    require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs" } });
 
-      var editor = CodeMirror.fromTextArea(textarea, {
-        lineNumbers: true,
-        mode: "python",
-        theme: "material-darker",
-        indentUnit: 4,
+    require(["vs/editor/editor.main"], function () {
+
+      // ── Custom R tokenizer (Monaco has no built-in R support) ──────────────
+      monaco.languages.register({ id: "r" });
+      monaco.languages.setMonarchTokensProvider("r", {
+        keywords: ["if","else","for","while","repeat","function","return","next","break","TRUE","FALSE","NULL","NA","Inf","NaN","in"],
+        tokenizer: {
+          root: [
+            [/#.*$/, "comment"],
+            [/"(?:[^"\\]|\\.)*"/, "string"],
+            [/'(?:[^'\\]|\\.)*'/, "string"],
+            [/\b\d+\.?\d*([eE][+-]?\d+)?\b/, "number"],
+            [/\b(?:if|else|for|while|repeat|function|return|next|break|TRUE|FALSE|NULL|NA|Inf|NaN|in)\b/, "keyword"],
+            [/<-|->|<<-|->>|=/, "operator"],
+            [/[a-zA-Z_.][a-zA-Z0-9_.]*(?=\s*\()/, "entity.name.function"],
+            [/[a-zA-Z_.][a-zA-Z0-9_.]*/, "identifier"],
+          ]
+        }
+      });
+
+      // ── Python completions (sandbox libraries) ─────────────────────────────
+      const PY_SNIPPETS = [
+        { label: "import pandas as pd",           insert: "import pandas as pd" },
+        { label: "import numpy as np",             insert: "import numpy as np" },
+        { label: "import matplotlib.pyplot as plt",insert: "import matplotlib.pyplot as plt" },
+        { label: "pd.read_csv()",                  insert: "pd.read_csv(\"${1:/work/data/file.csv}\")" },
+        { label: "df.describe()",                  insert: "df.describe()" },
+        { label: "df.head()",                      insert: "df.head(${1:5})" },
+        { label: "df.groupby()",                   insert: "df.groupby(\"${1:col}\").agg(${2:\"mean\"})" },
+        { label: "np.mean()",                      insert: "np.mean(${1:arr})" },
+        { label: "np.array()",                     insert: "np.array([${1}])" },
+        { label: "plt.savefig()",                  insert: "plt.savefig(\"/work/outputs/${1:plot.png}\")" },
+        { label: "os.makedirs outputs",            insert: "import os\nos.makedirs(\"/work/outputs\", exist_ok=True)" },
+        { label: "print()",                        insert: "print(${1})" },
+        { label: "for i in range()",               insert: "for ${1:i} in range(${2:10}):\n    ${3:pass}" },
+        { label: "def function()",                 insert: "def ${1:func}(${2}):\n    ${3:pass}" },
+        { label: "sklearn LinearRegression",       insert: "from sklearn.linear_model import LinearRegression\nmodel = LinearRegression()\nmodel.fit(${1:X_train}, ${2:y_train})" },
+        { label: "scipy.stats",                    insert: "from scipy import stats" },
+      ];
+
+      monaco.languages.registerCompletionItemProvider("python", {
+        provideCompletionItems: function(model, position) {
+          const word = model.getWordUntilPosition(position);
+          const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber,
+                          startColumn: word.startColumn, endColumn: word.endColumn };
+          return {
+            suggestions: PY_SNIPPETS.map(s => ({
+              label: s.label,
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: s.insert,
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              range: range,
+            }))
+          };
+        }
+      });
+
+      // ── Create editor ──────────────────────────────────────────────────────
+      const editor = monaco.editor.create(document.getElementById("monaco-container"), {
+        value: "",
+        language: "python",
+        theme: "vs-dark",
+        fontSize: 14,
+        fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
         tabSize: 4,
-        lineWrapping: true,
+        insertSpaces: true,
+        wordWrap: "on",
+        bracketPairColorization: { enabled: true },
+        autoClosingBrackets: "always",
+        autoClosingQuotes: "always",
+        formatOnType: true,
+        suggestOnTriggerCharacters: true,
+        quickSuggestions: { other: true, comments: false, strings: false },
+        parameterHints: { enabled: true },
+        lineNumbers: "on",
+        renderLineHighlight: "line",
+        cursorBlinking: "smooth",
       });
 
-      editor.setSize("100%", 360);
+      // ── Lint status via server-side py_compile ─────────────────────────────
+      const lintStatus = document.getElementById("lint-status");
+      let lintTimer = null;
 
-      // Changer le mode syntaxique selon le langage sélectionné
-      document.querySelectorAll('input[name="language"]').forEach(function(radio) {
-        radio.addEventListener("change", function() {
-          editor.setOption("mode", this.value === "r" ? "r" : "python");
-        });
-      });
+      function runLint() {
+        const lang = document.querySelector('input[name="language"]:checked')?.value;
+        if (lang !== "python") { lintStatus.textContent = ""; lintStatus.className = ""; return; }
+        const code = editor.getValue();
+        if (!code.trim()) { lintStatus.textContent = ""; return; }
 
-      var form = document.getElementById("submit-form");
-      if (form) {
-        form.addEventListener("submit", function() {
-          textarea.value = editor.getValue();
-        });
+        fetch("/web/lint", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            lintStatus.textContent = "✓ Syntaxe correcte";
+            lintStatus.className = "ok";
+            monaco.editor.setModelMarkers(editor.getModel(), "lint", []);
+          } else {
+            lintStatus.textContent = "✗ " + data.error;
+            lintStatus.className = "error";
+            if (data.line) {
+              monaco.editor.setModelMarkers(editor.getModel(), "lint", [{
+                severity: monaco.MarkerSeverity.Error,
+                message: data.error,
+                startLineNumber: data.line, startColumn: data.col || 1,
+                endLineNumber: data.line, endColumn: data.col || 999,
+              }]);
+            }
+          }
+        })
+        .catch(() => { lintStatus.textContent = ""; });
       }
-    })();
+
+      // ── Language switching ─────────────────────────────────────────────────
+      document.querySelectorAll('input[name="language"]').forEach(function (radio) {
+        radio.addEventListener("change", function () {
+          const lang = this.value === "r" ? "r" : "python";
+          monaco.editor.setModelLanguage(editor.getModel(), lang);
+          lintStatus.textContent = "";
+          lintStatus.className = "";
+          monaco.editor.setModelMarkers(editor.getModel(), "lint", []);
+        });
+      });
+
+      // ── Persist editor content in localStorage ────────────────────────────
+      const STORAGE_KEY = "pet_editor_code";
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) editor.setValue(saved);
+
+      editor.onDidChangeModelContent(function () {
+        clearTimeout(lintTimer);
+        lintTimer = setTimeout(runLint, 800);
+        localStorage.setItem(STORAGE_KEY, editor.getValue());
+      });
+
+      // ── Copy value to hidden textarea on submit ───────────────────────────
+      document.getElementById("submit-form").addEventListener("submit", function (e) {
+        const code = editor.getValue().trim();
+        if (!code) {
+          e.preventDefault();
+          alert("Le code ne peut pas être vide.");
+          return;
+        }
+        document.getElementById("code").value = code;
+        localStorage.removeItem(STORAGE_KEY);
+      });
+    });
+  })();
   </script>
   <script>
     var BSS_USER_ID = {{ session.get('user_id', 'null') }};
